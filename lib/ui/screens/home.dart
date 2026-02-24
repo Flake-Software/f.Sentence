@@ -6,17 +6,14 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home'),
-      ),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            // Primer navigacije nazad na onboarding
-            Navigator.pushNamed(context, '/onboarding');
-          },
-          child: const Text('Go to Onboarding'),
-        ),
+      appBar: AppBar(title: const Text('Home')),
+      body: const Center(child: Text('Welcome!', style: TextStyle(fontSize: 24))),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // placeholder za Open Document
+          print('Open document pressed');
+        },
+        child: const Icon(Icons.folder_open),
       ),
     );
   }
