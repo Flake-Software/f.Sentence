@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'screens/home_screen.dart';
-import 'screens/onboarding_screen.dart';
+import 'ui/screens/home_screen.dart';
+import 'ui/screens/onboarding_screen.dart';
+import 'ui/screens/document_viewer_screen.dart';
 
 void main() {
   runApp(const FSentenceApp());
