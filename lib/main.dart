@@ -1,34 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'ui/screens/home.dart';
-import 'ui/screens/onboarding.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+import 'screens/home_screen.dart';
+import 'screens/onboarding_screen.dart';
 
-  final prefs = await SharedPreferences.getInstance();
-  final seenOnboarding = prefs.getBool('seenOnboarding') ?? false;
-
-  runApp(FSentenceApp(seenOnboarding: seenOnboarding));
+void main() {
+  runApp(const FSentenceApp());
 }
 
-class FSentenceApp extends StatelessWidget {
-  final bool seenOnboarding;
-  const FSentenceApp({required this.seenOnboarding, super.key});
+class FSentenceApp extends StatefulWidget {
+  const FSentenceApp({super.key});
+
+  @override
+  State<FSentenceApp> createState() => _FSentenceAppState();
+}
+
+class _FSentenceAppState extends State<FSentenceApp> {
+  bool? _isFirstLaunch;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkFirstLaunch();
+  }
+
+  Future<void> _checkFirstLaunch() async {
+    final prefs = await SharedPreferences.getInstance();
+    final firstLaunch = prefs.getBool('first_launch') ?? true;
+
+    if (firstLaunch) {
+      await prefs.setBool('first_launch', false);
+    }
+
+    setState(() {
+      _isFirstLaunch = firstLaunch;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isFirstLaunch == null) {
+      return const MaterialApp(
+        home: Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
     return MaterialApp(
-      title: 'f.Sentence',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.orange,
         fontFamily: 'Roboto',
+        useMaterial3: true,
       ),
-      initialRoute: seenOnboarding ? '/main' : '/onboarding',
-      routes: {
-        '/main': (context) => const HomeScreen(),
-        '/onboarding': (context) => const OnboardingScreen(),
-      },
+      home: _isFirstLaunch!
+          ? const OnboardingScreen()
+          : const HomeScreen(),
     );
   }
 }
