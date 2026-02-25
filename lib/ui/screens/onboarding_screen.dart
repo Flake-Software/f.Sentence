@@ -11,10 +11,11 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
-
   int _currentPage = 0;
 
-  static const List<_OnboardingStep> _steps = [
+  bool get _isLastPage => _currentPage == _steps.length - 1;
+
+  final List<_OnboardingStep> _steps = [
     _OnboardingStep(
       icon: Icons.description_outlined,
       title: 'Import DOCX files',
@@ -33,10 +34,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       description:
           'Go to Home and open your first document to start reading.',
     ),
-  ];
-
-  bool get _isLastPage => _currentPage == _steps.length - 1;
-
+    _OnboardingStep(
       icon: Icons.text_snippet_outlined,
       title: 'Extract text from .docx',
       description:
@@ -72,9 +70,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _goBack() {
-    if (_currentPage == 0) {
-      return;
-    }
+    if (_currentPage == 0) return;
 
     _pageController.previousPage(
       duration: const Duration(milliseconds: 220),
@@ -97,10 +93,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isLastPage = _currentPage == _steps.length - 1;
+    final isLastPage = _isLastPage;
 
     return Scaffold(
       body: SafeArea(
@@ -109,6 +102,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Header
               Row(
                 children: [
                   Icon(
@@ -131,6 +125,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ],
               ),
               const SizedBox(height: 8),
+              // Progress bar
               ClipRRect(
                 borderRadius: BorderRadius.circular(999),
                 child: LinearProgressIndicator(
@@ -140,6 +135,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ),
               const SizedBox(height: 26),
+              // PageView
               Expanded(
                 child: PageView.builder(
                   controller: _pageController,
@@ -151,84 +147,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   },
                   itemBuilder: (_, index) {
                     final step = _steps[index];
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 76,
-                          height: 76,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Icon(
-                            step.icon,
-                            size: 38,
-                            color: theme.colorScheme.onPrimaryContainer,
-                          ),
-                        ),
-                        const SizedBox(height: 30),
-                        Text(
-                          step.title,
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          step.description,
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            height: 1.45,
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _currentPage == 0 ? null : _goBack,
-                      child: const Text('Back'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: _goNext,
-                      child: Text(_isLastPage ? 'Finish' : 'Next'),
-                    ),
-                  ),
-                ],
-              ),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: _goToHome,
-                  child: const Text('Skip'),
-                ),
-              ),
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  itemCount: _steps.length,
-                  onPageChanged: (index) {
-                    setState(() {
-                      _currentPage = index;
-                    });
-                  },
-                  itemBuilder: (_, index) {
-                    final step = _steps[index];
-
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -262,36 +180,34 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   },
                 ),
               ),
+              const SizedBox(height: 20),
+              // Page indicator
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
                   _steps.length,
-                  (index) {
-                    final selected = index == _currentPage;
-
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: selected ? 20 : 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.outlineVariant,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    );
-                  },
+                  (index) => AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    width: index == _currentPage ? 20 : 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: index == _currentPage
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
+              // Navigation buttons
               FilledButton(
                 onPressed: () {
                   if (isLastPage) {
                     _goToHome();
                     return;
                   }
-
                   _pageController.nextPage(
                     duration: const Duration(milliseconds: 260),
                     curve: Curves.easeOut,
