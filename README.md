@@ -47,12 +47,9 @@ This project is licensed under the [GNU General Public License v3.0](LICENSE).
 ## 🤝 Contributing
 
 We would love to have your contributions! Here’s how you can help:  
-
-- Translate the app into different languages via Weblate  
+  
 - Contribute to the source code (you can request contributor access or fork the repo)  
 - Share feedback and ideas  
-
-[![Translation status](https://hosted.weblate.org/widget/f-sentence/open-graph.png)](https://hosted.weblate.org/engage/f-sentence/)
 
 **Contribution rules:**  
 - Please respect our [Code of Conduct](CODE_OF_CONDUCT.md) (based on the Contributor Covenant)  
