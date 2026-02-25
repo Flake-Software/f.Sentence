@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'home_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -29,12 +28,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           'View document text in a clean, focused layout that is easy to follow.',
     ),
     _OnboardingStep(
-      icon: Icons.task_alt_outlined,
-      title: 'You are all set',
-      description:
-          'Go to Home and open your first document to start reading.',
-    ),
-    _OnboardingStep(
       icon: Icons.text_snippet_outlined,
       title: 'Extract text from .docx',
       description:
@@ -48,17 +41,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ),
     _OnboardingStep(
       icon: Icons.rocket_launch_outlined,
-      title: 'Ready to start',
+      title: 'You are all set!',
       description:
-          'Continue to your home screen and open your first document.',
+          'Continue to f.Sentence and open your first document.',
     ),
   ];
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
 
   void _goToHome() {
     Navigator.pushReplacement(
@@ -69,154 +56,160 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  void _goBack() {
-    if (_currentPage == 0) return;
-
-    _pageController.previousPage(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOut,
-    );
-  }
-
-  void _goNext() {
+  void _nextPage() {
     if (_isLastPage) {
       _goToHome();
       return;
     }
-
     _pageController.nextPage(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOut,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
     );
+  }
+
+  void _previousPage() {
+    if (_currentPage == 0) return;
+    _pageController.previousPage(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isLastPage = _isLastPage;
 
     return Scaffold(
+      backgroundColor: theme.colorScheme.surfaceVariant,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 18, 24, 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header
-              Row(
-                children: [
-                  Icon(
-                    Icons.settings_suggest_outlined,
-                    size: 20,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Set up Sentence',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
+        child: Column(
+          children: [
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: _steps.length,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentPage = index;
+                  });
+                },
+                itemBuilder: (_, index) {
+                  final step = _steps[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.easeInOut,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.colorScheme.shadow.withOpacity(0.2),
+                            blurRadius: 12,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              step.icon,
+                              size: 56,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          Text(
+                            step.title,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            step.description,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Page indicator
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                _steps.length,
+                (index) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  margin: const EdgeInsets.symmetric(horizontal: 6),
+                  width: index == _currentPage ? 28 : 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: index == _currentPage
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurface.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Navigation buttons
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              child: Row(
+                children: [
+                  if (_currentPage > 0)
+                    OutlinedButton(
+                      onPressed: _previousPage,
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        minimumSize: const Size(100, 48),
+                      ),
+                      child: const Text('Back'),
+                    ),
                   const Spacer(),
-                  TextButton(
-                    onPressed: _goToHome,
-                    child: const Text('Skip'),
+                  FilledButton(
+                    onPressed: _nextPage,
+                    style: FilledButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      minimumSize: const Size(140, 48),
+                    ),
+                    child: Text(_isLastPage ? 'Get started' : 'Next'),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              // Progress bar
-              ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: LinearProgressIndicator(
-                  minHeight: 6,
-                  value: (_currentPage + 1) / _steps.length,
-                  backgroundColor: theme.colorScheme.surfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 26),
-              // PageView
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  itemCount: _steps.length,
-                  onPageChanged: (index) {
-                    setState(() {
-                      _currentPage = index;
-                    });
-                  },
-                  itemBuilder: (_, index) {
-                    final step = _steps[index];
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircleAvatar(
-                          radius: 48,
-                          backgroundColor:
-                              theme.colorScheme.primary.withOpacity(0.1),
-                          child: Icon(
-                            step.icon,
-                            size: 46,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                        const SizedBox(height: 28),
-                        Text(
-                          step.title,
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.headlineSmall,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          step.description,
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            height: 1.45,
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 20),
-              // Page indicator
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  _steps.length,
-                  (index) => AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: index == _currentPage ? 20 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: index == _currentPage
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.outlineVariant,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              // Navigation buttons
-              FilledButton(
-                onPressed: () {
-                  if (isLastPage) {
-                    _goToHome();
-                    return;
-                  }
-                  _pageController.nextPage(
-                    duration: const Duration(milliseconds: 260),
-                    curve: Curves.easeOut,
-                  );
-                },
-                child: Text(isLastPage ? 'Get started' : 'Next'),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 24),
+          ],
         ),
       ),
     );
