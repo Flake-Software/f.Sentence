@@ -8,11 +8,13 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends State<OnboardingScreen>
+    with TickerProviderStateMixin {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  bool get _isLastPage => _currentPage == _steps.length - 1;
+  late final AnimationController _animController =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
 
   final List<_OnboardingStep> _steps = [
     _OnboardingStep(
@@ -41,18 +43,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ),
     _OnboardingStep(
       icon: Icons.rocket_launch_outlined,
-      title: 'You are all set!',
+      title: 'Ready to start',
       description:
-          'Continue to f.Sentence and open your first document.',
+          'Continue to your home screen and open your first document.',
     ),
   ];
+
+  bool get _isLastPage => _currentPage == _steps.length - 1;
 
   void _goToHome() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (_) => const HomeScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
     );
   }
 
@@ -62,23 +64,95 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       return;
     }
     _pageController.nextPage(
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOut,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOutCubic,
     );
   }
 
   void _previousPage() {
     if (_currentPage == 0) return;
     _pageController.previousPage(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOutCubic,
     );
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _animController.dispose();
     super.dispose();
+  }
+
+  Widget _buildStep(_OnboardingStep step, bool active) {
+    final theme = Theme.of(context);
+    return AnimatedScale(
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOutCubic,
+      scale: active ? 1.0 : 0.9,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 600),
+        opacity: active ? 1.0 : 0.6,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            gradient: active
+                ? LinearGradient(
+                    colors: [
+                      theme.colorScheme.primaryContainer,
+                      theme.colorScheme.secondaryContainer
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            color: active ? null : theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  step.icon,
+                  size: 56,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                step.title,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.headlineMedium
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                step.description,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -98,62 +172,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   setState(() {
                     _currentPage = index;
                   });
+                  _animController.forward(from: 0);
                 },
                 itemBuilder: (_, index) {
-                  final step = _steps[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 500),
-                      curve: Curves.easeInOut,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: theme.colorScheme.shadow.withOpacity(0.2),
-                            blurRadius: 12,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withOpacity(0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              step.icon,
-                              size: 56,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                          const SizedBox(height: 32),
-                          Text(
-                            step.title,
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            step.description,
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                              height: 1.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+                  return _buildStep(_steps[index], index == _currentPage);
                 },
               ),
             ),
