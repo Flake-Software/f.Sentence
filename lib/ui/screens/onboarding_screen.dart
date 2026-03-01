@@ -1,3 +1,5 @@
+import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
 
@@ -8,29 +10,46 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends State<OnboardingScreen>
+    with TickerProviderStateMixin {
   final PageController _controller = PageController();
-  int _page = 0;
+  double _page = 0;
 
-  final List<_StepData> _steps = [
-    _StepData(
-      icon: Icons.description_outlined,
-      title: 'Import DOCX',
-      description: 'Open and extract text from your .docx files instantly.',
+  late final AnimationController _bgController =
+      AnimationController(vsync: this, duration: const Duration(seconds: 8))
+        ..repeat(reverse: true);
+
+  final List<_Step> _steps = [
+    _Step(
+      title: "Import DOCX",
+      description: "Open and extract text instantly.",
     ),
-    _StepData(
-      icon: Icons.chrome_reader_mode_outlined,
-      title: 'Clean Reading',
-      description: 'Distraction-free layout focused on clarity.',
+    _Step(
+      title: "Clean Reading",
+      description: "Distraction-free layout.",
     ),
-    _StepData(
-      icon: Icons.rocket_launch_outlined,
-      title: 'Start Reading',
-      description: 'Open your first document and begin.',
+    _Step(
+      title: "Start Reading",
+      description: "Open your first document.",
     ),
   ];
 
-  bool get _isLast => _page == _steps.length - 1;
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() {
+      setState(() => _page = _controller.page ?? 0);
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _bgController.dispose();
+    super.dispose();
+  }
+
+  bool get _isLast => _page.round() == _steps.length - 1;
 
   void _next() {
     if (_isLast) {
@@ -49,122 +68,155 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final step = _steps[_page];
 
     return Scaffold(
-      body: AnimatedContainer(
-        duration: const Duration(milliseconds: 600),
-        curve: Curves.easeInOutCubic,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              theme.colorScheme.primaryContainer,
-              theme.colorScheme.secondaryContainer,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: SafeArea(
-          child: Stack(
+      body: AnimatedBuilder(
+        animation: _bgController,
+        builder: (_, __) {
+          return Stack(
             children: [
-              /// Big subtle background icon
-              Positioned(
-                right: -40,
-                top: 100,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 500),
-                  child: Icon(
-                    step.icon,
-                    key: ValueKey(step.icon),
-                    size: 260,
-                    color: theme.colorScheme.onPrimary.withOpacity(0.05),
+              /// Animated liquid background
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _LiquidPainter(
+                    progress: _bgController.value,
+                    colors: [
+                      theme.colorScheme.primaryContainer,
+                      theme.colorScheme.secondaryContainer,
+                    ],
                   ),
                 ),
               ),
 
-              /// PageView content
+              /// Page content
               PageView.builder(
                 controller: _controller,
                 itemCount: _steps.length,
-                onPageChanged: (i) => setState(() => _page = i),
                 itemBuilder: (_, index) {
-                  final s = _steps[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 500),
-                          child: Text(
-                            s.title,
-                            key: ValueKey(s.title),
-                            style: theme.textTheme.displaySmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              height: 1.1,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 500),
-                          child: Text(
-                            s.description,
-                            key: ValueKey(s.description),
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              height: 1.6,
-                              color: theme.colorScheme.onPrimary.withOpacity(0.8),
-                            ),
-                          ),
-                        ),
-                      ],
+                  final step = _steps[index];
+                  final diff = (_page - index);
+                  final opacity = (1 - diff.abs()).clamp(0.0, 1.0);
+
+                  return Opacity(
+                    opacity: opacity,
+                    child: Center(
+                      child: _GlassPanel(step: step),
                     ),
                   );
                 },
               ),
 
-              /// Bottom progress line
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 400),
-                      height: 6,
-                      width: MediaQuery.of(context).size.width *
-                          ((_page + 1) / _steps.length),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    /// Expanding action button
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 500),
-                        curve: Curves.easeInOutCubic,
-                        width: _isLast ? double.infinity : 160,
-                        height: 56,
-                        child: FilledButton(
-                          onPressed: _next,
-                          style: FilledButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(28),
-                            ),
-                          ),
-                          child: Text(_isLast ? 'Get started' : 'Next'),
+              /// Floating magnetic button
+              Positioned(
+                bottom: 60,
+                right: 32,
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 1, end: _isLast ? 1.2 : 1),
+                  duration: const Duration(milliseconds: 400),
+                  builder: (_, scale, child) {
+                    return Transform.scale(
+                      scale: scale,
+                      child: FloatingActionButton(
+                        onPressed: _next,
+                        child: Icon(
+                          _isLast
+                              ? Icons.check
+                              : Icons.arrow_forward,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 48),
-                  ],
+                    );
+                  },
                 ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Liquid background painter
+class _LiquidPainter extends CustomPainter {
+  final double progress;
+  final List<Color> colors;
+
+  _LiquidPainter({required this.progress, required this.colors});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    final path1 = Path();
+    path1.moveTo(0, size.height * 0.3);
+    path1.quadraticBezierTo(
+      size.width * 0.5,
+      size.height * (0.3 + 0.1 * sin(progress * pi)),
+      size.width,
+      size.height * 0.3,
+    );
+    path1.lineTo(size.width, 0);
+    path1.lineTo(0, 0);
+    path1.close();
+
+    paint.color = colors[0];
+    canvas.drawPath(path1, paint);
+
+    final path2 = Path();
+    path2.moveTo(0, size.height * 0.7);
+    path2.quadraticBezierTo(
+      size.width * 0.5,
+      size.height * (0.7 - 0.1 * cos(progress * pi)),
+      size.width,
+      size.height * 0.7,
+    );
+    path2.lineTo(size.width, size.height);
+    path2.lineTo(0, size.height);
+    path2.close();
+
+    paint.color = colors[1];
+    canvas.drawPath(path2, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+/// Glass style panel
+class _GlassPanel extends StatelessWidget {
+  final _Step step;
+
+  const _GlassPanel({required this.step});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(32),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          width: 320,
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(32),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                step.title,
+                style: theme.textTheme.headlineMedium
+                    ?.copyWith(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                step.description,
+                style: theme.textTheme.bodyLarge,
+                textAlign: TextAlign.center,
               ),
             ],
           ),
@@ -174,14 +226,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-class _StepData {
-  final IconData icon;
+class _Step {
   final String title;
   final String description;
 
-  _StepData({
-    required this.icon,
-    required this.title,
-    required this.description,
-  });
+  _Step({required this.title, required this.description});
 }
