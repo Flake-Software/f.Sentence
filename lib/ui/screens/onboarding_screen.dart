@@ -8,244 +8,180 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen>
-    with TickerProviderStateMixin {
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
+class _OnboardingScreenState extends State<OnboardingScreen> {
+  final PageController _controller = PageController();
+  int _page = 0;
 
-  late final AnimationController _animController =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
-
-  final List<_OnboardingStep> _steps = [
-    _OnboardingStep(
+  final List<_StepData> _steps = [
+    _StepData(
       icon: Icons.description_outlined,
-      title: 'Import DOCX files',
-      description:
-          'Open your .docx files and extract readable text in just a few taps.',
+      title: 'Import DOCX',
+      description: 'Open and extract text from your .docx files instantly.',
     ),
-    _OnboardingStep(
+    _StepData(
       icon: Icons.chrome_reader_mode_outlined,
-      title: 'Read with less clutter',
-      description:
-          'View document text in a clean, focused layout that is easy to follow.',
+      title: 'Clean Reading',
+      description: 'Distraction-free layout focused on clarity.',
     ),
-    _OnboardingStep(
-      icon: Icons.text_snippet_outlined,
-      title: 'Extract text from .docx',
-      description:
-          'Open documents directly in the app and instantly parse their content.',
-    ),
-    _OnboardingStep(
-      icon: Icons.auto_awesome,
-      title: 'Focus on sentences',
-      description:
-          'Keep reading clear and simple with sentence-first viewing experience.',
-    ),
-    _OnboardingStep(
+    _StepData(
       icon: Icons.rocket_launch_outlined,
-      title: 'Ready to start',
-      description:
-          'Continue to your home screen and open your first document.',
+      title: 'Start Reading',
+      description: 'Open your first document and begin.',
     ),
   ];
 
-  bool get _isLastPage => _currentPage == _steps.length - 1;
+  bool get _isLast => _page == _steps.length - 1;
 
-  void _goToHome() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
-    );
-  }
-
-  void _nextPage() {
-    if (_isLastPage) {
-      _goToHome();
-      return;
+  void _next() {
+    if (_isLast) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    } else {
+      _controller.nextPage(
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOutCubic,
+      );
     }
-    _pageController.nextPage(
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOutCubic,
-    );
-  }
-
-  void _previousPage() {
-    if (_currentPage == 0) return;
-    _pageController.previousPage(
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOutCubic,
-    );
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    _animController.dispose();
-    super.dispose();
-  }
-
-  Widget _buildStep(_OnboardingStep step, bool active) {
-    final theme = Theme.of(context);
-    return AnimatedScale(
-      duration: const Duration(milliseconds: 600),
-      curve: Curves.easeInOutCubic,
-      scale: active ? 1.0 : 0.9,
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 600),
-        opacity: active ? 1.0 : 0.6,
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            gradient: active
-                ? LinearGradient(
-                    colors: [
-                      theme.colorScheme.primaryContainer,
-                      theme.colorScheme.secondaryContainer
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : null,
-            color: active ? null : theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.12),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  step.icon,
-                  size: 56,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-              const SizedBox(height: 32),
-              Text(
-                step.title,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.headlineMedium
-                    ?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                step.description,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final step = _steps[_page];
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surfaceVariant,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: _steps.length,
-                onPageChanged: (index) {
-                  setState(() {
-                    _currentPage = index;
-                  });
-                  _animController.forward(from: 0);
-                },
-                itemBuilder: (_, index) {
-                  return _buildStep(_steps[index], index == _currentPage);
-                },
-              ),
-            ),
-            const SizedBox(height: 20),
-            // Page indicator
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                _steps.length,
-                (index) => AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  margin: const EdgeInsets.symmetric(horizontal: 6),
-                  width: index == _currentPage ? 28 : 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: index == _currentPage
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurface.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
+      body: AnimatedContainer(
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOutCubic,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              theme.colorScheme.primaryContainer,
+              theme.colorScheme.secondaryContainer,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: Stack(
+            children: [
+              /// Big subtle background icon
+              Positioned(
+                right: -40,
+                top: 100,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 500),
+                  child: Icon(
+                    step.icon,
+                    key: ValueKey(step.icon),
+                    size: 260,
+                    color: theme.colorScheme.onPrimary.withOpacity(0.05),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-            // Navigation buttons
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              child: Row(
-                children: [
-                  if (_currentPage > 0)
-                    OutlinedButton(
-                      onPressed: _previousPage,
-                      style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+
+              /// PageView content
+              PageView.builder(
+                controller: _controller,
+                itemCount: _steps.length,
+                onPageChanged: (i) => setState(() => _page = i),
+                itemBuilder: (_, index) {
+                  final s = _steps[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 500),
+                          child: Text(
+                            s.title,
+                            key: ValueKey(s.title),
+                            style: theme.textTheme.displaySmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              height: 1.1,
+                            ),
+                          ),
                         ),
-                        minimumSize: const Size(100, 48),
-                      ),
-                      child: const Text('Back'),
+                        const SizedBox(height: 24),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 500),
+                          child: Text(
+                            s.description,
+                            key: ValueKey(s.description),
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              height: 1.6,
+                              color: theme.colorScheme.onPrimary.withOpacity(0.8),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  const Spacer(),
-                  FilledButton(
-                    onPressed: _nextPage,
-                    style: FilledButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      minimumSize: const Size(140, 48),
-                    ),
-                    child: Text(_isLastPage ? 'Get started' : 'Next'),
-                  ),
-                ],
+                  );
+                },
               ),
-            ),
-            const SizedBox(height: 24),
-          ],
+
+              /// Bottom progress line
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 400),
+                      height: 6,
+                      width: MediaQuery.of(context).size.width *
+                          ((_page + 1) / _steps.length),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    /// Expanding action button
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeInOutCubic,
+                        width: _isLast ? double.infinity : 160,
+                        height: 56,
+                        child: FilledButton(
+                          onPressed: _next,
+                          style: FilledButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(28),
+                            ),
+                          ),
+                          child: Text(_isLast ? 'Get started' : 'Next'),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 48),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _OnboardingStep {
-  const _OnboardingStep({
+class _StepData {
+  final IconData icon;
+  final String title;
+  final String description;
+
+  _StepData({
     required this.icon,
     required this.title,
     required this.description,
   });
-
-  final IconData icon;
-  final String title;
-  final String description;
 }
