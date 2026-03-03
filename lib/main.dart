@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'ui/screens/onboarding_screen.dart';
+import 'home_screen.dart'; 
 
 void main() {
   runApp(const FSentenceApp());
