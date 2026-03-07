@@ -7,13 +7,22 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Centriran naslov i bez senke za čistiji izgled
       appBar: AppBar(
-        title: const Text("Home"),
+        title: const Text("f.Sentence", style: TextStyle(fontWeight: FontWeight.w300)),
+        centerTitle: true,
       ),
-      body: const Center(
-        child: Text(
-          "Welcome!",
-          style: TextStyle(fontSize: 22),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.description_outlined, size: 80, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            const Text(
+              "Nema otvorenih dokumenata",
+              style: TextStyle(fontSize: 18, color: Colors.grey),
+            ),
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -25,8 +34,10 @@ class HomeScreen extends StatelessWidget {
             ),
           );
         },
-        icon: const Icon(Icons.folder_open),
-        label: const Text("Open document"),
+        // Koristimo zaobljene ivice (M3 stil)
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        icon: const Icon(Icons.add), 
+        label: const Text("Započni pisanje"),
       ),
     );
   }
