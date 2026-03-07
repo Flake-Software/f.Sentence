@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/storage_service.dart'; // Importuj servis
 
 class DocumentViewerScreen extends StatefulWidget {
   const DocumentViewerScreen({super.key});
@@ -8,41 +9,35 @@ class DocumentViewerScreen extends StatefulWidget {
 }
 
 class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
-  // Kontroler preko kojeg upravljaš tekstom
   final TextEditingController _controller = TextEditingController();
+  final String _currentFileName = "test_dokument.txt"; // Kasnije ćemo ovo prosleđivati
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _initLoad();
+  }
+
+  void _initLoad() async {
+    String content = await StorageService.readFile(_currentFileName);
+    setState(() {
+      _controller.text = content;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        // Izbacujemo naslov da bi bilo što čistije, ostavljamo samo Back dugme
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            onPressed: () {
-              // Ovde ćemo kasnije dodati onaj tvoj "Incognito" mod ili Share
-            },
-            icon: const Icon(Icons.more_vert),
-          ),
-        ],
-      ),
+      appBar: AppBar(backgroundColor: Colors.transparent),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+        padding: const EdgeInsets.all(20.0),
         child: TextField(
           controller: _controller,
-          maxLines: null, // Omogućava da tekst ide u nedogled nadole
-          keyboardType: TextInputType.multiline,
-          style: const TextStyle(fontSize: 18, height: 1.5),
+          onChanged: (text) => StorageService.saveFile(_currentFileName, text),
+          maxLines: null,
           decoration: const InputDecoration(
-            hintText: "Počni da pišeš...",
-            border: InputBorder.none, // Totalni minimalizam, nema onih ružnih linija
+            hintText: "Samo piši...",
+            border: InputBorder.none,
           ),
         ),
       ),
