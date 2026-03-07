@@ -1,38 +1,28 @@
-name: Build f.Sentence APK
-# up to repo owner (2 options: write or read)
-permissions:
-  contents: read
+name: Build f.Sentence
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
-  build-apk:
-    name: Build Android APK
+  build:
+    # Build se pokreće SAMO ako poruka commit-a sadrži [build]
+    if: contains(github.event.head_commit.message, '[build]')
+    
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install Flutter
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.0'
+          channel: 'stable'
+          cache: true # Dodao sam keširanje da ti buildovi budu još brži
 
-      - name: Run flutter doctor
-        run: flutter doctor -v
-
-      - name: Get dependencies
+      - name: Install dependencies
         run: flutter pub get
 
       - name: Build APK
-        run: flutter build apk --release
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: f.Sentence-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
+        run: flutter build apk --split-per-abi
+        
