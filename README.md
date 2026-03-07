@@ -1,7 +1,7 @@
 # f.Sentence
 (pronounced “f Sentence”, without the dot)
 
-![ic_launcher](https://github.com/user-attachments/assets/094cf8ce-40c3-4105-9948-02e25955561a)
+![1772912764922~3](https://github.com/user-attachments/assets/8c2ef953-27b0-41f4-924b-985395e376c1)
 
 **f.Sentence** is an open-source document editor and productivity app built for students, creatives, and anyone who wants to get work done efficiently across multiple document types. Designed for Android devices and Android TV, it aims to bring professional-grade features to everyone, completely free of charge.
 
