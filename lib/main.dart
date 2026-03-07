@@ -13,11 +13,23 @@ class FSentenceApp extends StatelessWidget {
     return MaterialApp(
       title: 'f.Sentence',
       debugShowCheckedModeBanner: false,
+      
+      // Postavljamo minimalistički Material 3 izgled
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
         useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.orangeAccent, // Blago modernija nijansa
+          brightness: Brightness.light,
+        ),
       ),
-      home: const OnboardingScreen(),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.orangeAccent,
+          brightness: Brightness.dark,
+        ),
+      ),
+      home: const OnboardingScreen(), 
     );
   }
 }
