@@ -56,7 +56,7 @@ We would love to have your contributions! Here’s how you can help:
 - Discuss major changes before submitting large pull requests  
 - Follow our code style guidelines (to be documented soon)
 
-## 🧡 Credits
+## Credits
 
 Thanks to all contributors that helped us on our journey. 
 
