@@ -63,4 +63,4 @@ Thanks to all contributors that helped us on our journey.
 
 ---
 
-© 2025 - 2026 Flake. 
+© 2025 - 2026. Flake. 
