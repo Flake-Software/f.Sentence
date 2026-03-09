@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../core/storage_service.dart'; // Importuj servis
+import '../../core/storage_service.dart';
 
 class DocumentViewerScreen extends StatefulWidget {
-  const DocumentViewerScreen({super.key});
+  final String fileName; // Adding the parameter that was missing
+
+  const DocumentViewerScreen({super.key, required this.fileName});
 
   @override
   State<DocumentViewerScreen> createState() => _DocumentViewerScreenState();
@@ -10,16 +12,15 @@ class DocumentViewerScreen extends StatefulWidget {
 
 class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   final TextEditingController _controller = TextEditingController();
-  final String _currentFileName = "test_dokument.txt"; // Kasnije ćemo ovo prosleđivati
 
   @override
   void initState() {
     super.initState();
-    _initLoad();
+    _loadContent();
   }
 
-  void _initLoad() async {
-    String content = await StorageService.readFile(_currentFileName);
+  Future<void> _loadContent() async {
+    String content = await StorageService.readFile(widget.fileName);
     setState(() {
       _controller.text = content;
     });
@@ -28,19 +29,30 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(backgroundColor: Colors.transparent),
+      appBar: AppBar(
+        title: Text(widget.fileName, style: const TextStyle(fontSize: 16)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.symmetric(horizontal: 20.0),
         child: TextField(
           controller: _controller,
-          onChanged: (text) => StorageService.saveFile(_currentFileName, text),
+          onChanged: (text) => StorageService.saveFile(widget.fileName, text),
           maxLines: null,
+          keyboardType: TextInputType.multiline,
           decoration: const InputDecoration(
-            hintText: "Samo piši...",
+            hintText: "Start typing...",
             border: InputBorder.none,
           ),
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }
