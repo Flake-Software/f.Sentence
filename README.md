@@ -17,21 +17,21 @@ It goes far beyond a simple text editor, offering tools for:
 **100% Free and Open Source Software (FOSS)**  
 No ads. No in-app purchases. No nonsense.
 
-## 🚀 Development Status
+## Development Status
 
 Currently in **early development**. Frequent updates and breaking changes are expected as the app matures.
 
 **Next planned release date:** *January 1, 2026*  
 
 **Supported platforms:**  
-✅ Android 5.0 and higher  
-✅ Android TV 5.0 and higher  
+- Android 5.0 and higher  
+- Android TV 5.0 and higher  
 
 > **Note**: Development has been rebooted with a clearer architecture and new goals.
 
 A detailed roadmap will be published soon.
 
-## ✍️ Upcoming Features
+## Upcoming Features
 
 - Note-taking with basic formatting  
 - Opening documents from internal storage  
@@ -41,11 +41,11 @@ A detailed roadmap will be published soon.
 - Document creation  
 - Offline collaboration
 
-## 📜 Licensing
+## Licensing
 
 This project is licensed under the [GNU General Public License v3.0](LICENSE).
 
-## 🤝 Contributing
+## Contributing
 
 We would love to have your contributions! Here’s how you can help:  
   
