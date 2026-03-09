@@ -17,7 +17,6 @@ class FSentenceApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
         useMaterial3: true,
       ),
-      // Direct access to HomeScreen to avoid "Onboarding" errors
       home: const HomeScreen(), 
     );
   }
