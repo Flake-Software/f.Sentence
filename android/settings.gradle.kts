@@ -18,7 +18,9 @@ pluginManagement {
 
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    id("com.android.application") version "8.7.0" apply false
+    // Nadograđeno na 8.9.1 da bi podržalo Android SDK 36 i nove androidx biblioteke
+    id("com.android.application") version "8.9.1" apply false
+    // Kotlin verzija usklađena sa modernim Flutter standardima
     id("org.jetbrains.kotlin.android") version "2.1.0" apply false
 }
 
