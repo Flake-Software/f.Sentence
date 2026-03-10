@@ -48,7 +48,6 @@ We would love to have your contributions! Here’s how you can help:
 **Contribution rules:**  
 - Please respect our [Code of Conduct](CODE_OF_CONDUCT.md) (based on the Contributor Covenant)  
 - Discuss major changes before submitting large pull requests  
-- Follow our code style guidelines (to be documented soon)
 
 ## Credits
 
