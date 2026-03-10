@@ -11,9 +11,8 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   flutter_launcher_icons: ^0.14.3
-  flutter_quill: ^11.4.1
-  flutter_quill_extensions: ^11.0.0
-  quill_delta: ^3.0.0-nullsafety.2
+  fleather: ^1.1.1
+  parchment: ^1.1.0
   shared_preferences: ^2.5.3
   image_picker: ^1.0.7
   file_picker: ^10.1.9
