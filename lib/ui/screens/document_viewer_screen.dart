@@ -1,67 +1,67 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
-import '../../core/storage_service.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 
-class DocumentViewerScreen extends StatefulWidget {
-  final String fileName;
-
-  const DocumentViewerScreen({super.key, required this.fileName});
+class FSentenceEditor extends StatefulWidget {
+  const FSentenceEditor({super.key});
 
   @override
-  State<DocumentViewerScreen> createState() => _DocumentViewerScreenState();
+  State<FSentenceEditor> createState() => _FSentenceEditorState();
 }
 
-class _DocumentViewerScreenState extends State<DocumentViewerScreen> with SingleTickerProviderStateMixin {
-  final TextEditingController _controller = TextEditingController();
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _loadContent();
-  }
-
-  Future<void> _loadContent() async {
-    String content = await StorageService.readFile(widget.fileName);
-    setState(() {
-      _controller.text = content;
-    });
-  }
+class _FSentenceEditorState extends State<FSentenceEditor> {
+  // Kontroler koji drži sav tekst i stilove
+  final QuillController _controller = QuillController.basic();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.fileName, style: const TextStyle(fontSize: 16)),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: "Edit"),
-            Tab(text: "Preview"),
-          ],
-        ),
+        title: const Text('f.Sentence'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.save),
+            onPressed: () {
+              // Ovde ćemo kasnije dodati čuvanje u bazu
+            },
+          ),
+        ],
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          // EDITOR TAB
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _controller,
-              maxLines: null,
-              onChanged: (text) => StorageService.saveFile(widget.fileName, text),
-              decoration: const InputDecoration(
-                hintText: "Start typing...",
-                border: InputBorder.none,
-              ),
+          // TOOLBAR: Ovde su tvoja dugmad (Bold, Italic, Liste...)
+          QuillSimpleToolbar(
+            controller: _controller,
+            configurations: const QuillSimpleToolbarConfigurations(
+              // Izbacujemo stvari koje nam ne trebaju da bude preglednije
+              showFontSize: false,
+              showFontFamily: false,
+              showSearchButton: false,
+              showSubscript: false,
+              showSuperscript: false,
+              showSmallButton: false,
+              showInlineCode: false,
+              showLink: true,
+              showUndo: true,
+              showRedo: true,
+              multiRowsDisplay: false, // Sve u jednom redu
             ),
           ),
-          Markdown(
-            data: _controller.text,
-            selectable: true,
-            padding: const EdgeInsets.all(16.0),
+          
+          // SAM EDITOR (Mesto gde kucaš)
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              child: QuillEditor.basic(
+                controller: _controller,
+                configurations: const QuillEditorConfigurations(
+                  placeholder: 'Počni da pišeš...',
+                  readOnly: false,
+                  autoFocus: true,
+                  expands: true,
+                  padding: EdgeInsets.zero,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -71,7 +71,6 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> with Single
   @override
   void dispose() {
     _controller.dispose();
-    _tabController.dispose();
     super.dispose();
   }
 }
