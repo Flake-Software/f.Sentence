@@ -8,9 +8,9 @@ jobs:
   build:
     # Build se pokreće SAMO ako poruka commit-a sadrži [build]
     if: contains(github.event.head_commit.message, '[build]')
-    
+
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v4
 
@@ -24,12 +24,13 @@ jobs:
         run: flutter pub get
 
       - name: Build APK
-        run: flutter build apk --split-per-abi
+        # Dodajemo --release za svaki slučaj
+        run: flutter build apk --release --split-per-abi
 
-      - name: Upload APK
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: f-sentence-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-
-        
+          name: f-sentence-apks
+          # Zvezdica (*) je ključna - ona kaže "uzmi sve APK fajlove koje nađeš"
+          path: build/app/outputs/flutter-apk/*.apk
+          retention-days: 5
