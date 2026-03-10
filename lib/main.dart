@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'ui/screens/home_screen.dart'; 
+import 'ui/screens/document_viewer_screen.dart';
 
 void main() {
   runApp(const FSentenceApp());
