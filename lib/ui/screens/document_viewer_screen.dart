@@ -21,7 +21,6 @@ class _FSentenceEditorState extends State<FSentenceEditor> {
           IconButton(
             icon: const Icon(Icons.save),
             onPressed: () {
-              // Ovde ćemo kasnije dodati čuvanje u bazu
             },
           ),
         ],
@@ -31,8 +30,7 @@ class _FSentenceEditorState extends State<FSentenceEditor> {
           // TOOLBAR: Ovde su tvoja dugmad (Bold, Italic, Liste...)
           QuillSimpleToolbar(
             controller: _controller,
-            configurations: const QuillSimpleToolbarConfigurations(
-              // Izbacujemo stvari koje nam ne trebaju da bude preglednije
+            QuillSimpleToolbarConfigurations(
               showFontSize: false,
               showFontFamily: false,
               showSearchButton: false,
@@ -46,8 +44,6 @@ class _FSentenceEditorState extends State<FSentenceEditor> {
               multiRowsDisplay: false, // Sve u jednom redu
             ),
           ),
-          
-          // SAM EDITOR (Mesto gde kucaš)
           Expanded(
             child: Container(
               padding: const EdgeInsets.all(16),
