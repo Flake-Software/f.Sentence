@@ -1,61 +1,45 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart';
+import 'package:fleather/fleather.dart';
+import 'package:parchment/parchment.dart';
 
-class FSentenceEditor extends StatefulWidget {
-  const FSentenceEditor({super.key});
+class DocumentViewerScreen extends StatefulWidget {
+  final String? fileName;
+  const DocumentViewerScreen({super.key, this.fileName});
 
   @override
-  State<FSentenceEditor> createState() => _FSentenceEditorState();
+  State<DocumentViewerScreen> createState() => _DocumentViewerScreenState();
 }
 
-class _FSentenceEditorState extends State<FSentenceEditor> {
-  // Kontroler koji drži sav tekst i stilove
-  final QuillController _controller = QuillController.basic();
+class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
+  FleatherController? _controller;
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    // Inicijalizujemo prazan dokument
+    final doc = ParchmentDocument();
+    _controller = FleatherController(document: doc);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('f.Sentence'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: () {
-            },
-          ),
-        ],
+        title: Text(widget.fileName ?? 'f.Sentence Editor'),
       ),
       body: Column(
         children: [
-          // TOOLBAR: Ovde su tvoja dugmad (Bold, Italic, Liste...)
-          QuillSimpleToolbar(
-            controller: _controller,
-            QuillSimpleToolbarConfigurations(
-              showFontSize: false,
-              showFontFamily: false,
-              showSearchButton: false,
-              showSubscript: false,
-              showSuperscript: false,
-              showSmallButton: false,
-              showInlineCode: false,
-              showLink: true,
-              showUndo: true,
-              showRedo: true,
-              multiRowsDisplay: false,
-            ),
-          ),
+          // Toolbar koji korisnik vidi - samo klikne Bold/Italic
+          FleatherToolbar.basic(controller: _controller!),
+          
           Expanded(
             child: Container(
               padding: const EdgeInsets.all(16),
-              child: QuillEditor.basic(
-                controller: _controller,
-                configurations: const QuillEditorConfigurations(
-                  placeholder: 'Počni da pišeš...',
-                  readOnly: false,
-                  autoFocus: true,
-                  expands: true,
-                  padding: EdgeInsets.zero,
-                ),
+              child: FleatherEditor(
+                controller: _controller!,
+                focusNode: _focusNode,
+                padding: EdgeInsets.zero,
               ),
             ),
           ),
@@ -66,7 +50,8 @@ class _FSentenceEditorState extends State<FSentenceEditor> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 }
