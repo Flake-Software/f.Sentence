@@ -4,41 +4,38 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// Čitamo tajne lozinke iz sistema (koje GitHub Actions postavi)
-val keystorePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
-val keystoreAlias = System.getenv("KEY_ALIAS") ?: ""
-val keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+val keystorePasswordStr = System.getenv("KEYSTORE_PASSWORD") ?: ""
+val keystoreAliasStr = System.getenv("KEY_ALIAS") ?: ""
+val keyPasswordStr = System.getenv("KEY_PASSWORD") ?: ""
 
 android {
     namespace = "com.flake.sentence" 
-    compileSdk = 36 // Ostajemo na najnovijem
+    compileSdk = 36
 
     sourceSets {
         getByName("main").java.srcDirs("src/main/kotlin")
     }
 
     defaultConfig {
-        // Ovde unesi svoj stvarni applicationId ako je drugačiji
-        applicationId = "com.example.f_sentence"
+        applicationId = "com.flake.sentence"
         minSdk = 21
         targetSdk = 36
-        versionCode = 2 // Podigli smo na 2 da bi Android dozvolio update
-        versionName = "0.1.1"
+        versionCode = 2
+        versionName = "1.0.1"
     }
 
     signingConfigs {
         create("release") {
-            // Putanja do fajla koji GitHub Actions dekodira
             storeFile = file("f-sentence.jks")
-            storePassword = keystorePassword
-            keyAlias = keystoreAlias
-            keyPassword = keyPassword
+            storePassword = keystorePasswordStr
+            keyAlias = keystoreAliasStr
+            keyPassword = keyPasswordStr
         }
     }
 
     buildTypes {
         release {
-            // Ovde uključujemo tvoj novi digitalni potpis
+            // Ovde smo rekli Gradle-u da koristi gornji "release" potpis
             signingConfig = signingConfigs.getByName("release")
             
             isMinifyEnabled = false
