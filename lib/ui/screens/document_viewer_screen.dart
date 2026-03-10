@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import '../../core/storage_service.dart';
 
 class DocumentViewerScreen extends StatefulWidget {
-  final String fileName; // Adding the parameter that was missing
+  final String fileName;
 
   const DocumentViewerScreen({super.key, required this.fileName});
 
@@ -10,12 +11,14 @@ class DocumentViewerScreen extends StatefulWidget {
   State<DocumentViewerScreen> createState() => _DocumentViewerScreenState();
 }
 
-class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
+class _DocumentViewerScreenState extends State<DocumentViewerScreen> with SingleTickerProviderStateMixin {
   final TextEditingController _controller = TextEditingController();
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _loadContent();
   }
 
@@ -31,21 +34,36 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.fileName, style: const TextStyle(fontSize: 16)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-        child: TextField(
-          controller: _controller,
-          onChanged: (text) => StorageService.saveFile(widget.fileName, text),
-          maxLines: null,
-          keyboardType: TextInputType.multiline,
-          decoration: const InputDecoration(
-            hintText: "Start typing...",
-            border: InputBorder.none,
-          ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: "Edit"),
+            Tab(text: "Preview"),
+          ],
         ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // EDITOR TAB
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _controller,
+              maxLines: null,
+              onChanged: (text) => StorageService.saveFile(widget.fileName, text),
+              decoration: const InputDecoration(
+                hintText: "Start typing...",
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+          Markdown(
+            data: _controller.text,
+            selectable: true,
+            padding: const EdgeInsets.all(16.0),
+          ),
+        ],
       ),
     );
   }
@@ -53,6 +71,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   @override
   void dispose() {
     _controller.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 }
