@@ -1,44 +1,69 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Čitamo tajne lozinke iz sistema (koje GitHub Actions postavi)
+val keystorePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+val keystoreAlias = System.getenv("KEY_ALIAS") ?: ""
+val keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+
 android {
-    namespace = "com.flake.sentence"
-    compileSdk = 36
-    //ndkVersion = "27.0.12077973"
+    namespace = "com.flake.sentence" 
+    compileSdk = 36 // Ostajemo na najnovijem
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+    sourceSets {
+        getByName("main").java.srcDirs("src/main/kotlin")
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.flake.sentence"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 22
+        // Ovde unesi svoj stvarni applicationId ako je drugačiji
+        applicationId = "com.example.f_sentence"
+        minSdk = 21
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.0.2"
+        versionCode = 2 // Podigli smo na 2 da bi Android dozvolio update
+        versionName = "0.1.1"
+    }
+
+    signingConfigs {
+        create("release") {
+            // Putanja do fajla koji GitHub Actions dekodira
+            storeFile = file("f-sentence.jks")
+            storePassword = keystorePassword
+            keyAlias = keystoreAlias
+            keyPassword = keyPassword
+        }
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Ovde uključujemo tvoj novi digitalni potpis
+            signingConfig = signingConfigs.getByName("release")
+            
+            isMinifyEnabled = false
+            isShrinkResources = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
     }
 }
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    implementation("androidx.core:core-ktx:1.17.0")
 }
