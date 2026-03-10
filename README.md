@@ -1,5 +1,7 @@
 # f.Sentence
 
+[![Build f.Sentence](https://github.com/Flake-Software/f.Sentence/actions/workflows/dart.yml/badge.svg?branch=main)](https://github.com/Flake-Software/f.Sentence/actions/workflows/dart.yml)
+
 <img width="512" height="512" alt="20260309_185950_0000" src="https://github.com/user-attachments/assets/16279538-eb2f-4aa4-8ab1-7ec59f461cad" />
 
 
