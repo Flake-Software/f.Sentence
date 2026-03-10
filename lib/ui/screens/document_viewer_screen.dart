@@ -41,7 +41,7 @@ class _FSentenceEditorState extends State<FSentenceEditor> {
               showLink: true,
               showUndo: true,
               showRedo: true,
-              multiRowsDisplay: false, // Sve u jednom redu
+              multiRowsDisplay: false,
             ),
           ),
           Expanded(
