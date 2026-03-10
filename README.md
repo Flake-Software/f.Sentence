@@ -20,15 +20,9 @@ No ads. No in-app purchases. No nonsense.
 
 Currently in **early development**. Frequent updates and breaking changes are expected as the app matures.
 
-**Next planned release date:** *January 1, 2026*  
-
 **Supported platforms:**  
 - Android 5.0 and higher  
 - Android TV 5.0 and higher  
-
-> **Note**: Development has been rebooted with a clearer architecture and new goals.
-
-A detailed roadmap will be published soon.
 
 ## Upcoming Features
 
