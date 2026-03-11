@@ -42,14 +42,16 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     final String key = widget.fileName ?? _defaultDocName;
     final deltaData = jsonEncode(_controller!.document.toDelta());
     _box.put(key, deltaData);
-    debugPrint("Dokument sačuvan: ${DateTime.now()}");
+    debugPrint("Document saved at: ${DateTime.now()}");
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final bool isKeyboardVisible = bottomInset > 0;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false, 
       appBar: AppBar(
         title: Text(
           widget.fileName ?? 'f.Sentence',
@@ -58,22 +60,23 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
       ),
       body: Stack(
         children: [
-          // Editor deo
           Positioned.fill(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: FleatherEditor(
                 controller: _controller!,
                 focusNode: _focusNode,
-                padding: const EdgeInsets.only(top: 16, bottom: 120),
+                padding: EdgeInsets.only(
+                  top: 16, 
+                  bottom: isKeyboardVisible ? bottomInset + 80 : 120
+                ),
               ),
             ),
           ),
 
-          // Pilula toolbar koja lebdi iznad tastature
           if (isKeyboardVisible)
             Positioned(
-              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              bottom: bottomInset + 16,
               left: 16,
               right: 16,
               child: Material(
@@ -87,7 +90,6 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Theme(
                     data: Theme.of(context).copyWith(
-                      // Ovim čistimo toolbar od pozadina i viška linija
                       dividerColor: Colors.transparent,
                     ),
                     child: Center(
@@ -95,7 +97,6 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                         scrollDirection: Axis.horizontal,
                         child: FleatherToolbar.basic(
                           controller: _controller!,
-                          
                         ),
                       ),
                     ),
