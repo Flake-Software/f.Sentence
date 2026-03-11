@@ -22,6 +22,7 @@ dependencies:
   flutter_speed_dial: ^6.2.0
   animations: ^2.0.11
   url_launcher: ^6.2.5
+  share_plus: ^10.1.4
   flutter:
     sdk: flutter
 dev_dependencies:
