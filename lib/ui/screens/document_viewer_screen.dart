@@ -1,3 +1,5 @@
+// This file and whole project are licensed under GNU General Public License v3.0. For more information, visit https://www.gnu.org/licenses/gpl-3.0.html
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fleather/fleather.dart';
