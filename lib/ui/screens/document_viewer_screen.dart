@@ -95,8 +95,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                         scrollDirection: Axis.horizontal,
                         child: FleatherToolbar.basic(
                           controller: _controller!,
-                          // Izbacili smo sve hideOvo parametre da build ne puca
-                          // Fleather će sam prikazati osnovne stvari
+                          
                         ),
                       ),
                     ),
