@@ -1,8 +1,3 @@
-//  f.Sentence - More than text editor. Copyright (C) 2026  Zoran Jeremić
-//  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-//  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-//  You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fleather/fleather.dart';
@@ -47,7 +42,6 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     final String key = widget.fileName ?? _defaultDocName;
     final deltaData = jsonEncode(_controller!.document.toDelta());
     _box.put(key, deltaData);
-    debugPrint("Document saved at: ${DateTime.now()}");
   }
 
   @override
@@ -56,7 +50,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     final bool isKeyboardVisible = bottomInset > 0;
 
     return Scaffold(
-      resizeToAvoidBottomInset: false, 
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: Text(
           widget.fileName ?? 'f.Sentence',
@@ -68,47 +62,58 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
           Positioned.fill(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: FleatherEditor(
-                controller: _controller!,
-                focusNode: _focusNode,
-                padding: EdgeInsets.only(
-                  top: 16, 
-                  bottom: isKeyboardVisible ? bottomInset + 80 : 120
+              child: GestureDetector(
+                // Rešava kursor: Ako klikneš van teksta, editor dobija fokus
+                onTap: () => _focusNode.requestFocus(),
+                child: FleatherEditor(
+                  controller: _controller!,
+                  focusNode: _focusNode,
+                  readOnly: false,
+                  autoFocus: false,
+                  // Omogućava normalno kretanje kursora bez prisilne selekcije
+                  enableInteractiveSelection: true,
+                  padding: EdgeInsets.only(
+                    top: 16, 
+                    bottom: isKeyboardVisible ? bottomInset + 80 : 100
+                  ),
                 ),
               ),
             ),
           ),
 
-          if (isKeyboardVisible)
-            Positioned(
-              bottom: bottomInset + 16,
-              left: 16,
-              right: 16,
-              child: Material(
-                elevation: 6,
-                shadowColor: Colors.black26,
-                borderRadius: BorderRadius.circular(30),
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                clipBehavior: Clip.antiAlias,
-                child: Container(
-                  height: 56,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Theme(
-                    data: Theme.of(context).copyWith(
-                      dividerColor: Colors.transparent,
-                    ),
-                    child: Center(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: FleatherToolbar.basic(
-                          controller: _controller!,
-                        ),
+          // Pilula koja je UVEK tu
+          Positioned(
+            // Ako je tastatura tu, ide iznad nje. Ako nije, ide na dno (safe area)
+            bottom: isKeyboardVisible 
+                ? bottomInset + 16 
+                : MediaQuery.of(context).padding.bottom + 16,
+            left: 16,
+            right: 16,
+            child: Material(
+              elevation: 6,
+              shadowColor: Colors.black26,
+              borderRadius: BorderRadius.circular(30),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              clipBehavior: Clip.antiAlias,
+              child: Container(
+                height: 56,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    dividerColor: Colors.transparent,
+                  ),
+                  child: Center(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: FleatherToolbar.basic(
+                        controller: _controller!,
                       ),
                     ),
                   ),
                 ),
               ),
             ),
+          ),
         ],
       ),
     );
