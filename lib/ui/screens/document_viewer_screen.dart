@@ -89,7 +89,6 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: Theme(
                     data: Theme.of(context).copyWith(
-                      // Smanjujemo ikone da bi stale u tanku pilulu
                       iconTheme: const IconThemeData(size: 20),
                     ),
                     child: SingleChildScrollView(
