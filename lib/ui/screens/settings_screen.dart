@@ -12,19 +12,19 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   late SharedPreferences _prefs;
   bool _saveOnDevice = false;
-  String _defaultName = "new_note";
+  String _defaultName = "New note";
 
   @override
   void initState() {
     super.initState();
-    _loadSettings();
+    _initPrefs();
   }
 
-  _loadSettings() async {
+  void _initPrefs() async {
     _prefs = await SharedPreferences.getInstance();
     setState(() {
       _saveOnDevice = _prefs.getBool('save_on_device') ?? false;
-      _defaultName = _prefs.getString('default_name') ?? "new_note";
+      _defaultName = _prefs.getString('default_name') ?? "New note";
     });
   }
 
@@ -36,34 +36,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       body: ListView(
         children: [
-          _buildSectionTitle('General'),
+          _sectionHeader('General'),
           ListTile(
             leading: const Icon(Icons.palette_outlined),
             title: const Text('Accent colour'),
+            subtitle: const Text('Dynamic or custom colors'),
             onTap: () => _showColorPicker(),
           ),
           ListTile(
             leading: const Icon(Icons.brightness_6_outlined),
             title: const Text('Theme'),
+            subtitle: const Text('AMOLED, Dark, Light'),
             onTap: () => _showThemePicker(),
           ),
           const ListTile(
             leading: Icon(Icons.language_outlined),
             title: Text('Language'),
-            subtitle: Text('Placeholder (Coming soon)'),
+            subtitle: Text('English (System default)'),
           ),
 
-          const Divider(),
-          _buildSectionTitle('Home screen'),
+          const Divider(indent: 16, endIndent: 16),
+          _sectionHeader('Home screen'),
           ListTile(
             leading: const Icon(Icons.swipe_outlined),
             title: const Text('Swipe gestures'),
             subtitle: const Text('Configure list actions'),
-            onTap: () {}, // Implementacija kasnije
+            onTap: () {
+              // Ovde ćemo dodati Dismissible logiku kasnije
+            },
           ),
 
-          const Divider(),
-          _buildSectionTitle('Notes'),
+          const Divider(indent: 16, endIndent: 16),
+          _sectionHeader('Notes'),
           ListTile(
             leading: const Icon(Icons.edit_note_outlined),
             title: const Text('Default name for new notes'),
@@ -73,17 +77,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SwitchListTile(
             secondary: const Icon(Icons.sd_storage_outlined),
             title: const Text('Save notes on device'),
+            subtitle: const Text('Export automatically to local storage'),
             value: _saveOnDevice,
-            onChanged: (val) {
-              setState(() => _saveOnDevice = val);
-              _prefs.setBool('save_on_device', val);
+            onChanged: (bool value) async {
+              setState(() => _saveOnDevice = value);
+              await _prefs.setBool('save_on_device', value);
             },
           ),
 
-          const Divider(),
-          _buildSectionTitle('About'),
+          const Divider(indent: 16, endIndent: 16),
+          _sectionHeader('About'),
           ListTile(
-            leading: const Icon(Icons.Inventory_2_outlined),
+            leading: const Icon(Icons.inventory_2_outlined), // Popravljeno malo 'i'
             title: const Text('Dependencies'),
             onTap: () => _showDependencies(),
           ),
@@ -98,30 +103,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _sectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Text(title, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 12)),
+      child: Text(
+        title,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+          letterSpacing: 1.2,
+        ),
+      ),
     );
   }
 
-  // DIJALOZI (Popunjavaš ih prema tvom ukusu)
-  void _showColorPicker() { /* Popup sa listom boja */ }
-  void _showThemePicker() { /* Popup: System, Light, Dark, AMOLED */ }
+  void _showColorPicker() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Accent colour", style: TextStyle(fontWeight: FontWeight.w300)),
+        content: const Text("Material You dynamic coloring is active."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close"))
+        ],
+      ),
+    );
+  }
+
+  void _showThemePicker() {
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text("Theme", style: TextStyle(fontWeight: FontWeight.w300)),
+        children: ['System default', 'Light', 'Dark', 'AMOLED'].map((theme) {
+          return SimpleDialogOption(
+            onPressed: () => Navigator.pop(context),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Text(theme),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
 
   void _showDefaultNameDialog() {
-    TextEditingController controller = TextEditingController(text: _defaultName);
+    final controller = TextEditingController(text: _defaultName);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Default Note Name", style: TextStyle(fontWeight: FontWeight.w300)),
-        content: TextField(controller: controller, decoration: const InputDecoration(hintText: "Enter name")),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: "Enter default name"),
+          autofocus: true,
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
           TextButton(
-            onPressed: () {
-              setState(() => _defaultName = controller.text);
-              _prefs.setString('default_name', controller.text);
+            onPressed: () async {
+              if (controller.text.isNotEmpty) {
+                setState(() => _defaultName = controller.text);
+                await _prefs.setString('default_name', controller.text);
+              }
               Navigator.pop(context);
             },
             child: const Text("Save"),
@@ -135,14 +181,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showAboutDialog(
       context: context,
       applicationName: "f.Sentence",
-      children: [
-        const Text("• Fleather / Parchment\n• Hive\n• Dynamic Color\n• Easy Localization\n• Shared Preferences\n• Google Fonts"),
+      applicationVersion: "1.0.1",
+      children: const [
+        Text("Built with Flutter and passion for FOSS.\n"),
+        Text("• Fleather / Parchment"),
+        Text("• Hive / Hive Flutter"),
+        Text("• Dynamic Color"),
+        Text("• Easy Localization"),
+        Text("• Shared Preferences"),
+        Text("• Animations"),
       ],
     );
   }
 
   void _launchURL(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) await launchUrl(uri);
+    final Uri uri = Uri.parse(url);
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Could not open: $url")),
+        );
+      }
+    }
   }
 }
