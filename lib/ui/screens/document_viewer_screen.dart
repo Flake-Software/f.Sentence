@@ -96,7 +96,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                       child: FleatherToolbar.basic(
                         controller: _controller!,
                         // Isključujemo nepotrebne stvari za čistiji izgled
-                        hideHeadingSelection: false,
+                        hideHeading: false,
                         hideIndentation: true,
                         hideListNumbers: true,
                       ),
