@@ -1,4 +1,4 @@
-import 'dart:convert'; // Za jsonEncode/jsonDecode
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fleather/fleather.dart';
 import 'package:parchment/parchment.dart';
@@ -16,14 +16,13 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   FleatherController? _controller;
   late Box _box;
   final String _defaultDocName = "novo_pisanje";
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _box = Hive.box('documents_box');
     _loadDocument();
-    
-    // Auto-save: Svaki put kad se tekst promeni, snimi u Hive
     _controller!.addListener(_autoSave);
   }
 
@@ -32,47 +31,81 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     final String? savedData = _box.get(key);
 
     if (savedData != null) {
-      // Ako imamo sačuvano, učitaj taj Delta JSON
       final doc = ParchmentDocument.fromJson(jsonDecode(savedData));
       _controller = FleatherController(document: doc);
     } else {
-      // Ako je prazno, kreni od nule
       _controller = FleatherController();
     }
   }
 
   void _autoSave() {
     final String key = widget.fileName ?? _defaultDocName;
-    // Pretvaramo Delta format u JSON string
     final deltaData = jsonEncode(_controller!.document.toDelta());
-    
-    // Upisujemo u Hive
     _box.put(key, deltaData);
-    // Print u konzolu samo da vidiš da radi dok testiraš
     debugPrint("Dokument sačuvan: ${DateTime.now()}");
   }
 
   @override
   Widget build(BuildContext context) {
+    // Proveravamo da li je tastatura otvorena
+    final bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
           widget.fileName ?? 'f.Sentence',
-          style: const TextStyle(fontWeight: FontWeight.w300), // Tvoj tanak stil
+          style: const TextStyle(fontWeight: FontWeight.w300),
         ),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          FleatherToolbar.basic(controller: _controller!),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              child: FleatherEditor(
-                controller: _controller!,
-                padding: EdgeInsets.zero,
+          Column(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: FleatherEditor(
+                    controller: _controller!,
+                    focusNode: _focusNode,
+                    padding: const EdgeInsets.only(bottom: 100), // Da tekst ne ide ispod pilule
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          // Pilula toolbar
+          if (isKeyboardVisible)
+            Positioned(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 10,
+              left: 20,
+              right: 20,
+              child: Material(
+                elevation: 4,
+                borderRadius: BorderRadius.circular(30),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: Container(
+                  height: 50,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Theme(
+                    data: Theme.of(context).copyWith(
+                      // Smanjujemo ikone da bi stale u tanku pilulu
+                      iconTheme: const IconThemeData(size: 20),
+                    ),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: FleatherToolbar.basic(
+                        controller: _controller!,
+                        // Isključujemo nepotrebne stvari za čistiji izgled
+                        hideHeadingSelection: false,
+                        hideIndentation: true,
+                        hideListNumbers: true,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -82,6 +115,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   void dispose() {
     _controller?.removeListener(_autoSave);
     _controller?.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 }
