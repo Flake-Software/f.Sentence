@@ -73,7 +73,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
               ),
             ],
           ),
-          
+
           // Pilula toolbar
           if (isKeyboardVisible)
             Positioned(
