@@ -31,8 +31,13 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     final String? savedData = _box.get(key);
 
     if (savedData != null) {
-      final doc = ParchmentDocument.fromJson(jsonDecode(savedData));
-      _controller = FleatherController(document: doc);
+      try {
+        final doc = ParchmentDocument.fromJson(jsonDecode(savedData));
+        _controller = FleatherController(document: doc);
+      } catch (e) {
+        // Ako je fajl prazan ili korumpiran, otvori prazan editor
+        _controller = FleatherController();
+      }
     } else {
       _controller = FleatherController();
     }
@@ -42,23 +47,35 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     final String key = widget.fileName ?? _defaultDocName;
     final deltaData = jsonEncode(_controller!.document.toDelta());
     _box.put(key, deltaData);
+    debugPrint("f.Sentence: Dokument automatski sačuvan.");
   }
 
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final bool isKeyboardVisible = bottomInset > 0;
+    final safeBottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
+      // Isključujemo automatski resize da bi naš Stack i Positioned radili kako treba
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: Text(
           widget.fileName ?? 'f.Sentence',
           style: const TextStyle(fontWeight: FontWeight.w300),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share_outlined),
+            onPressed: () {
+              // Ovde ćemo kasnije dodati export u .txt ili .pdf
+            },
+          ),
+        ],
       ),
       body: Stack(
         children: [
+          // Glavni Editor
           Positioned.fill(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -68,41 +85,47 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                   controller: _controller!,
                   focusNode: _focusNode,
                   readOnly: false,
-                  // Izbačen problematični autoFocus
                   enableInteractiveSelection: true,
+                  // Padding na dnu se menja zavisno od tastature da tekst ne ostane sakriven
                   padding: EdgeInsets.only(
                     top: 16, 
-                    bottom: isKeyboardVisible ? bottomInset + 80 : 100
+                    bottom: isKeyboardVisible ? bottomInset + 80 : 100,
                   ),
                 ),
               ),
             ),
           ),
 
+          // Plutajuća "Pilula" Toolbar
           Positioned(
+            // Ako tastatura nije tu, koristimo safeBottomPadding za moderne telefone (gesture bar)
             bottom: isKeyboardVisible 
                 ? bottomInset + 16 
-                : MediaQuery.of(context).padding.bottom + 16,
+                : safeBottomPadding + 16,
             left: 16,
             right: 16,
             child: Material(
               elevation: 6,
-              shadowColor: Colors.black26,
+              shadowColor: Colors.black38,
               borderRadius: BorderRadius.circular(30),
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
               clipBehavior: Clip.antiAlias,
               child: Container(
                 height: 56,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Theme(
                   data: Theme.of(context).copyWith(
                     dividerColor: Colors.transparent,
+                    // Smanjujemo razmak između ikonica u toolbaru
+                    buttonTheme: const ButtonThemeData(minWidth: 40),
                   ),
                   child: Center(
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: FleatherToolbar.basic(
                         controller: _controller!,
+                        // Ovde ne dodajemo hide parametre dok ne budemo 100% sigurni
+                        // u novu dokumentaciju verzije 1.26.0
                       ),
                     ),
                   ),
@@ -110,7 +133,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
               ),
             ),
           ),
-        ], // Ovde je bila greška sa zagradom
+        ],
       ),
     );
   }
