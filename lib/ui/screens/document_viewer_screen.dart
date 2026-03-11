@@ -47,7 +47,6 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Proveravamo da li je tastatura otvorena
     final bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
     return Scaffold(
@@ -59,46 +58,46 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
       ),
       body: Stack(
         children: [
-          Column(
-            children: [
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: FleatherEditor(
-                    controller: _controller!,
-                    focusNode: _focusNode,
-                    padding: const EdgeInsets.only(bottom: 100), // Da tekst ne ide ispod pilule
-                  ),
-                ),
+          // Editor deo
+          Positioned.fill(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: FleatherEditor(
+                controller: _controller!,
+                focusNode: _focusNode,
+                padding: const EdgeInsets.only(top: 16, bottom: 120),
               ),
-            ],
+            ),
           ),
 
-          // Pilula toolbar
+          // Pilula toolbar koja lebdi iznad tastature
           if (isKeyboardVisible)
             Positioned(
-              bottom: MediaQuery.of(context).viewInsets.bottom + 10,
-              left: 20,
-              right: 20,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              left: 16,
+              right: 16,
               child: Material(
-                elevation: 4,
+                elevation: 6,
+                shadowColor: Colors.black26,
                 borderRadius: BorderRadius.circular(30),
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                clipBehavior: Clip.antiAlias,
                 child: Container(
-                  height: 50,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  height: 56,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Theme(
                     data: Theme.of(context).copyWith(
-                      iconTheme: const IconThemeData(size: 20),
+                      // Ovim čistimo toolbar od pozadina i viška linija
+                      dividerColor: Colors.transparent,
                     ),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: FleatherToolbar.basic(
-                        controller: _controller!,
-                        // Isključujemo nepotrebne stvari za čistiji izgled
-                        hideHeading: false,
-                        hideIndentation: true,
-                        hideListNumbers: true,
+                    child: Center(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: FleatherToolbar.basic(
+                          controller: _controller!,
+                          // Izbacili smo sve hideOvo parametre da build ne puca
+                          // Fleather će sam prikazati osnovne stvari
+                        ),
                       ),
                     ),
                   ),
