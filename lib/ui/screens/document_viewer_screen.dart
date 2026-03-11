@@ -15,7 +15,7 @@ class DocumentViewerScreen extends StatefulWidget {
 class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   FleatherController? _controller;
   late Box _box;
-  final String _defaultDocName = "novo_pisanje";
+  final String _defaultDocName = "new_note";
   final FocusNode _focusNode = FocusNode();
 
   @override
@@ -63,14 +63,12 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: GestureDetector(
-                // Rešava kursor: Ako klikneš van teksta, editor dobija fokus
                 onTap: () => _focusNode.requestFocus(),
                 child: FleatherEditor(
                   controller: _controller!,
                   focusNode: _focusNode,
                   readOnly: false,
                   autoFocus: false,
-                  // Omogućava normalno kretanje kursora bez prisilne selekcije
                   enableInteractiveSelection: true,
                   padding: EdgeInsets.only(
                     top: 16, 
@@ -80,10 +78,6 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
               ),
             ),
           ),
-
-          // Pilula koja je UVEK tu
-          Positioned(
-            // Ako je tastatura tu, ide iznad nje. Ako nije, ide na dno (safe area)
             bottom: isKeyboardVisible 
                 ? bottomInset + 16 
                 : MediaQuery.of(context).padding.bottom + 16,
