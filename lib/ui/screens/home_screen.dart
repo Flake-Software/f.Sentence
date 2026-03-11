@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../core/storage_service.dart';
 import 'document_viewer_screen.dart';
+import 'settings_screen.dart'; // Importuj svoj novi settings fajl
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,10 +24,14 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text("New Document"),
+          title: const Text("New Document", style: TextStyle(fontWeight: FontWeight.w300)),
           content: TextField(
+            autofocus: true,
             onChanged: (value) => newFileName = value,
-            decoration: const InputDecoration(hintText: "Enter file name"),
+            decoration: const InputDecoration(
+              hintText: "Enter file name",
+              border: UnderlineInputBorder(),
+            ),
           ),
           actions: [
             TextButton(
@@ -63,6 +68,50 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text("f.Sentence", style: TextStyle(fontWeight: FontWeight.w300)),
         centerTitle: true,
+        // Hamburger ikona
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
+      ),
+      // Meni sa leve strane
+      drawer: Drawer(
+        child: Column(
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+              ),
+              child: const Center(
+                child: Text(
+                  "f.Sentence",
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w200),
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings_outlined),
+              title: const Text("Settings"),
+              onTap: () {
+                Navigator.pop(context); // Zatvori meni
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                ).then((_) => _refreshList());
+              },
+            ),
+            const Spacer(),
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text(
+                "v1.0.1",
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
       ),
       body: FutureBuilder<List<File>>(
         future: StorageService.getLocalFiles(),
@@ -72,15 +121,22 @@ class _HomeScreenState extends State<HomeScreen> {
           }
 
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(
-              child: Text("No documents yet.", style: TextStyle(color: Colors.grey)),
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.note_add_outlined, size: 64, color: Colors.grey.withOpacity(0.5)),
+                  const SizedBox(height: 16),
+                  const Text("No documents yet.", style: TextStyle(color: Colors.grey)),
+                ],
+              ),
             );
           }
 
           final files = snapshot.data!;
 
           return ListView.builder(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             itemCount: files.length,
             itemBuilder: (context, index) {
               final file = files[index];
@@ -88,11 +144,29 @@ class _HomeScreenState extends State<HomeScreen> {
 
               return Card(
                 elevation: 0,
-                color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
-                margin: const EdgeInsets.only(bottom: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                    width: 1,
+                  ),
+                ),
+                margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
-                  leading: const Icon(Icons.article_outlined),
-                  title: Text(fileName),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  leading: CircleAvatar(
+                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                    child: Icon(Icons.article_outlined, 
+                         color: Theme.of(context).colorScheme.onPrimaryContainer),
+                  ),
+                  title: Text(
+                    fileName,
+                    style: const TextStyle(fontWeight: FontWeight.w400),
+                  ),
+                  subtitle: Text(
+                    "Last modified: ${file.lastModifiedSync().day}.${file.lastModifiedSync().month}.${file.lastModifiedSync().year}",
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -111,6 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onPressed: _showCreateDialog,
         label: const Text("New Note"),
         icon: const Icon(Icons.add),
+        elevation: 2,
       ),
     );
   }
