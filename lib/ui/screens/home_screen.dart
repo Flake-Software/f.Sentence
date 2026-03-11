@@ -1,192 +1,151 @@
-import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../../core/storage_service.dart';
-import 'document_viewer_screen.dart';
-import 'settings_screen.dart'; // Importuj svoj novi settings fajl
+import 'package:fleather/fleather.dart';
+import 'package:parchment/parchment.dart';
+import 'package:hive/hive.dart';
+import 'package:share_plus/share_plus.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class DocumentViewerScreen extends StatefulWidget {
+  final String? fileName;
+  const DocumentViewerScreen({super.key, this.fileName});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<DocumentViewerScreen> createState() => _DocumentViewerScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  // Funkcija za osvežavanje liste nakon kreiranja ili brisanja
-  void _refreshList() {
-    setState(() {});
+class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
+  FleatherController? _controller;
+  late Box _box;
+  final String _defaultDocName = "new_note";
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _box = Hive.box('documents_box');
+    _loadDocument();
+    _controller!.addListener(_autoSave);
   }
 
-  // Dijalog za kreiranje novog dokumenta
-  Future<void> _showCreateDialog() async {
-    String newFileName = "";
-    return showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("New Document", style: TextStyle(fontWeight: FontWeight.w300)),
-          content: TextField(
-            autofocus: true,
-            onChanged: (value) => newFileName = value,
-            decoration: const InputDecoration(
-              hintText: "Enter file name",
-              border: UnderlineInputBorder(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
-            ),
-            TextButton(
-              onPressed: () {
-                if (newFileName.isNotEmpty) {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => DocumentViewerScreen(
-                        fileName: newFileName.endsWith('.txt') 
-                            ? newFileName 
-                            : '$newFileName.txt',
-                      ),
-                    ),
-                  ).then((_) => _refreshList());
-                }
-              },
-              child: const Text("Create"),
-            ),
-          ],
-        );
-      },
-    );
+  void _loadDocument() {
+    final String key = widget.fileName ?? _defaultDocName;
+    final String? savedData = _box.get(key);
+
+    if (savedData != null) {
+      try {
+        final doc = ParchmentDocument.fromJson(jsonDecode(savedData));
+        _controller = FleatherController(document: doc);
+      } catch (e) {
+        _controller = FleatherController();
+      }
+    } else {
+      _controller = FleatherController();
+    }
+  }
+
+  void _autoSave() {
+    final String key = widget.fileName ?? _defaultDocName;
+    final deltaData = jsonEncode(_controller!.document.toDelta());
+    _box.put(key, deltaData);
+  }
+
+  // Funkcija koja pretvara bogat tekst u običan string za deljenje
+  void _shareDocument() {
+    final String plainText = _controller!.document.toPlainText();
+    final String title = widget.fileName ?? 'Untitled Note';
+    
+    if (plainText.trim().isNotEmpty) {
+      Share.share(plainText, subject: title);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Cannot share an empty note")),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final bool isKeyboardVisible = bottomInset > 0;
+    final safeBottomPadding = MediaQuery.of(context).padding.bottom;
+
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: const Text("f.Sentence", style: TextStyle(fontWeight: FontWeight.w300)),
-        centerTitle: true,
-        // Hamburger ikona
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () => Scaffold.of(context).openDrawer(),
+        title: Text(
+          widget.fileName ?? 'f.Sentence',
+          style: const TextStyle(fontWeight: FontWeight.w300),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share_outlined),
+            tooltip: 'Share as text',
+            onPressed: _shareDocument,
           ),
-        ),
+        ],
       ),
-      // Meni sa leve strane
-      drawer: Drawer(
-        child: Column(
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
-              ),
-              child: const Center(
-                child: Text(
-                  "f.Sentence",
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w200),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: GestureDetector(
+                onTap: () => _focusNode.requestFocus(),
+                child: FleatherEditor(
+                  controller: _controller!,
+                  focusNode: _focusNode,
+                  readOnly: false,
+                  enableInteractiveSelection: true,
+                  padding: EdgeInsets.only(
+                    top: 16, 
+                    bottom: isKeyboardVisible ? bottomInset + 80 : 100,
+                  ),
                 ),
               ),
             ),
-            ListTile(
-              leading: const Icon(Icons.settings_outlined),
-              title: const Text("Settings"),
-              onTap: () {
-                Navigator.pop(context); // Zatvori meni
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                ).then((_) => _refreshList());
-              },
-            ),
-            const Spacer(),
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text(
-                "v1.0.1",
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            ),
-          ],
-        ),
-      ),
-      body: FutureBuilder<List<File>>(
-        future: StorageService.getLocalFiles(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          ),
 
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.note_add_outlined, size: 64, color: Colors.grey.withOpacity(0.5)),
-                  const SizedBox(height: 16),
-                  const Text("No documents yet.", style: TextStyle(color: Colors.grey)),
-                ],
-              ),
-            );
-          }
-
-          final files = snapshot.data!;
-
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            itemCount: files.length,
-            itemBuilder: (context, index) {
-              final file = files[index];
-              final fileName = file.path.split('/').last;
-
-              return Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                    width: 1,
+          Positioned(
+            bottom: isKeyboardVisible 
+                ? bottomInset + 16 
+                : safeBottomPadding + 16,
+            left: 16,
+            right: 16,
+            child: Material(
+              elevation: 6,
+              shadowColor: Colors.black38,
+              borderRadius: BorderRadius.circular(30),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              clipBehavior: Clip.antiAlias,
+              child: Container(
+                height: 56,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    dividerColor: Colors.transparent,
                   ),
-                ),
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  leading: CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                    child: Icon(Icons.article_outlined, 
-                         color: Theme.of(context).colorScheme.onPrimaryContainer),
-                  ),
-                  title: Text(
-                    fileName,
-                    style: const TextStyle(fontWeight: FontWeight.w400),
-                  ),
-                  subtitle: Text(
-                    "Last modified: ${file.lastModifiedSync().day}.${file.lastModifiedSync().month}.${file.lastModifiedSync().year}",
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => DocumentViewerScreen(fileName: fileName),
+                  child: Center(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: FleatherToolbar.basic(
+                        controller: _controller!,
                       ),
-                    ).then((_) => _refreshList());
-                  },
+                    ),
+                  ),
                 ),
-              );
-            },
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showCreateDialog,
-        label: const Text("New Note"),
-        icon: const Icon(Icons.add),
-        elevation: 2,
+              ),
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _controller?.removeListener(_autoSave);
+    _controller?.dispose();
+    _focusNode.dispose();
+    super.dispose();
   }
 }
