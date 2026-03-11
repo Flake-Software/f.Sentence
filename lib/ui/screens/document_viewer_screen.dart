@@ -15,7 +15,7 @@ class DocumentViewerScreen extends StatefulWidget {
 class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   FleatherController? _controller;
   late Box _box;
-  final String _defaultDocName = "novo_pisanje";
+  final String _defaultDocName = "new_note";
   final FocusNode _focusNode = FocusNode();
 
   @override
