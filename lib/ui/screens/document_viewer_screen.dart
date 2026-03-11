@@ -15,7 +15,7 @@ class DocumentViewerScreen extends StatefulWidget {
 class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   FleatherController? _controller;
   late Box _box;
-  final String _defaultDocName = "new_note";
+  final String _defaultDocName = "novo_pisanje";
   final FocusNode _focusNode = FocusNode();
 
   @override
@@ -68,7 +68,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                   controller: _controller!,
                   focusNode: _focusNode,
                   readOnly: false,
-                  autoFocus: false,
+                  // Izbačen problematični autoFocus
                   enableInteractiveSelection: true,
                   padding: EdgeInsets.only(
                     top: 16, 
@@ -78,6 +78,8 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
               ),
             ),
           ),
+
+          Positioned(
             bottom: isKeyboardVisible 
                 ? bottomInset + 16 
                 : MediaQuery.of(context).padding.bottom + 16,
@@ -108,7 +110,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
               ),
             ),
           ),
-        ],
+        ], // Ovde je bila greška sa zagradom
       ),
     );
   }
