@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:fleather/fleather.dart';
 import 'package:parchment/parchment.dart';
 import 'package:hive/hive.dart';
+import 'package:share_plus/share_plus.dart';
 
 class DocumentViewerScreen extends StatefulWidget {
   final String? fileName;
@@ -35,7 +36,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
         final doc = ParchmentDocument.fromJson(jsonDecode(savedData));
         _controller = FleatherController(document: doc);
       } catch (e) {
-        // Ako je fajl prazan ili korumpiran, otvori prazan editor
+        // Fallback u slučaju greške pri učitavanju
         _controller = FleatherController();
       }
     } else {
@@ -47,7 +48,25 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     final String key = widget.fileName ?? _defaultDocName;
     final deltaData = jsonEncode(_controller!.document.toDelta());
     _box.put(key, deltaData);
-    debugPrint("f.Sentence: Dokument automatski sačuvan.");
+  }
+
+  // Funkcija za deljenje sadržaja beleške
+  void _shareDocument() {
+    // Pretvaramo Parchment u običan tekst
+    final String plainText = _controller!.document.toPlainText();
+    final String title = widget.fileName ?? 'Untitled Note';
+    
+    if (plainText.trim().isNotEmpty) {
+      Share.share(plainText, subject: title);
+    } else {
+      // Obaveštenje ako je beleška prazna
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Cannot share an empty note"),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -57,7 +76,6 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     final safeBottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      // Isključujemo automatski resize da bi naš Stack i Positioned radili kako treba
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: Text(
@@ -67,15 +85,14 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.share_outlined),
-            onPressed: () {
-              // Ovde ćemo kasnije dodati export u .txt ili .pdf
-            },
+            tooltip: 'Share note',
+            onPressed: _shareDocument,
           ),
         ],
       ),
       body: Stack(
         children: [
-          // Glavni Editor
+          // Editor površina
           Positioned.fill(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -86,7 +103,6 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                   focusNode: _focusNode,
                   readOnly: false,
                   enableInteractiveSelection: true,
-                  // Padding na dnu se menja zavisno od tastature da tekst ne ostane sakriven
                   padding: EdgeInsets.only(
                     top: 16, 
                     bottom: isKeyboardVisible ? bottomInset + 80 : 100,
@@ -96,9 +112,8 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
             ),
           ),
 
-          // Plutajuća "Pilula" Toolbar
+          // Toolbar "Pilula" na dnu
           Positioned(
-            // Ako tastatura nije tu, koristimo safeBottomPadding za moderne telefone (gesture bar)
             bottom: isKeyboardVisible 
                 ? bottomInset + 16 
                 : safeBottomPadding + 16,
@@ -106,7 +121,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
             right: 16,
             child: Material(
               elevation: 6,
-              shadowColor: Colors.black38,
+              shadowColor: Colors.black26,
               borderRadius: BorderRadius.circular(30),
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
               clipBehavior: Clip.antiAlias,
@@ -116,16 +131,12 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                 child: Theme(
                   data: Theme.of(context).copyWith(
                     dividerColor: Colors.transparent,
-                    // Smanjujemo razmak između ikonica u toolbaru
-                    buttonTheme: const ButtonThemeData(minWidth: 40),
                   ),
                   child: Center(
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: FleatherToolbar.basic(
                         controller: _controller!,
-                        // Ovde ne dodajemo hide parametre dok ne budemo 100% sigurni
-                        // u novu dokumentaciju verzije 1.26.0
                       ),
                     ),
                   ),
