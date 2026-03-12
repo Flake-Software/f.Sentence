@@ -1,6 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../core/storage_service.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'document_viewer_screen.dart';
 import 'settings_screen.dart';
 
@@ -12,6 +11,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // Funkcija za osvežavanje liste (iako Hive watch to radi automatski, ostavljamo je radi navigacije)
   void _refreshList() {
     setState(() {});
   }
@@ -44,9 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (_) => DocumentViewerScreen(
-                        fileName: newFileName.endsWith('.txt') 
-                            ? newFileName 
-                            : '$newFileName.txt',
+                        fileName: newFileName,
                       ),
                     ),
                   ).then((_) => _refreshList());
@@ -62,6 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Koristimo ValueListenableBuilder da bi se lista sama osvežila čim se nešto upiše u Hive
     return Scaffold(
       appBar: AppBar(
         title: const Text("f.Sentence", style: TextStyle(fontWeight: FontWeight.w300)),
@@ -109,14 +108,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      body: FutureBuilder<List<File>>(
-        future: StorageService.getLocalFiles(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+      // Ovde leži magija - slušamo 'documents_box' direktno
+      body: ValueListenableBuilder(
+        valueListenable: Hive.box('documents_box').listenable(),
+        builder: (context, Box box, _) {
+          if (box.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -129,14 +125,14 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
 
-          final files = snapshot.data!;
+          // Uzimamo sve ključeve (imena fajlova) iz baze
+          final keys = box.keys.toList().reversed.toList();
 
           return ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            itemCount: files.length,
+            itemCount: keys.length,
             itemBuilder: (context, index) {
-              final file = files[index];
-              final fileName = file.path.split('/').last;
+              final String fileName = keys[index].toString();
 
               return Card(
                 elevation: 0,
@@ -159,9 +155,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     fileName,
                     style: const TextStyle(fontWeight: FontWeight.w400),
                   ),
-                  subtitle: Text(
-                    "Modified: ${file.lastModifiedSync().day}.${file.lastModifiedSync().month}.${file.lastModifiedSync().year}",
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    onPressed: () {
+                      // Brisanje iz baze
+                      box.delete(fileName);
+                    },
                   ),
                   onTap: () {
                     Navigator.push(
