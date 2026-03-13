@@ -25,9 +25,12 @@ Currently in **early development**. Frequent updates and breaking changes are ex
 - Android 5.0 and higher  
 - Android TV 5.0 and higher  
 
+## Current Features
+
+- Note-taking with rich text formatting
+
 ## Upcoming Features
 
-- Note-taking with basic formatting  
 - Opening documents from internal storage  
 - PDF reading  
 - PDF editing  
