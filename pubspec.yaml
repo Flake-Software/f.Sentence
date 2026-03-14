@@ -1,5 +1,5 @@
 name: Sentence
-description: "More than text editor."
+description: "A simple, clean, and modular note-taking app built with Flutter."
 publish_to: 'none'
 
 version: 1.0.1+2
@@ -28,13 +28,12 @@ dev_dependencies:
   flutter_lints: ^3.0.0
   flutter_launcher_icons: ^0.13.1
 
-# Konfiguracija za tvoju novu ikonicu
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
   image_path: "assets/ic_launcher.png"
-  adaptive_icon_background: "#FFFFFF" 
-  adaptive_icon_foreground: "assets/icon/app_icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/ic_launcher.png"
 
 flutter:
   uses-material-design: true
