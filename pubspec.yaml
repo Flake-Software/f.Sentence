@@ -1,5 +1,5 @@
 name: Sentence
-description: "A simple, clean, and modular note-taking app built with Flutter."
+description: "More than text editor." 
 publish_to: 'none'
 
 version: 1.0.1+2
