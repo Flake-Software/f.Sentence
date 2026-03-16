@@ -2,24 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Tvoja nova lokacija za AppSettings
+// Your core settings logic
 import 'core/app_settings.dart'; 
 import 'ui/screens/home_screen.dart';
 
 void main() async {
-  // Osiguravamo da je sve spremno pre starta
+  // Ensure Flutter is ready
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Inicijalizacija baze (Hive)
+  // Initialize Hive and open storage box
   await Hive.initFlutter();
   await Hive.openBox('documents_box');
   
-  // Učitavanje SharedPreferences za podešavanja
+  // Load Preferences
   final prefs = await SharedPreferences.getInstance();
   final appSettings = AppSettings(prefs);
 
   runApp(
-    // ListenableBuilder sluša svaku promenu u AppSettings
+    // ListenableBuilder listens to changes in AppSettings (Theme, AMOLED, etc.)
     ListenableBuilder(
       listenable: appSettings,
       builder: (context, _) {
@@ -27,10 +27,10 @@ void main() async {
           title: 'f.Sentence',
           debugShowCheckedModeBanner: false,
           
-          // Biranje teme na osnovu podešavanja (System, Light, Dark)
+          // Theme selection based on settings (System, Light, Dark)
           themeMode: appSettings.themeMode,
           
-          // Svetla tema
+          // Light Theme
           theme: ThemeData(
             useMaterial3: true,
             colorSchemeSeed: Colors.blueGrey,
@@ -38,25 +38,25 @@ void main() async {
             fontFamily: 'Inter',
           ),
           
-          // Tamna / AMOLED tema
+          // Dark / AMOLED Theme
           darkTheme: ThemeData(
             useMaterial3: true,
             brightness: Brightness.dark,
             colorSchemeSeed: Colors.blueGrey,
             
-            // AMOLED magija: Ako je uključen, pozadina je čisto crna
+            // AMOLED Logic: Pure black background if enabled
             scaffoldBackgroundColor: appSettings.isAmoled ? Colors.black : null,
             appBarTheme: AppBarTheme(
               backgroundColor: appSettings.isAmoled ? Colors.black : null,
               elevation: 0,
             ),
             
-            // Kartice takođe bojimo u crno da ne odudaraju previše
-            cardTheme: CardTheme(
+            // Fixed: Use CardThemeData for Material 3
+            cardTheme: CardThemeData(
               color: appSettings.isAmoled ? const Color(0xFF0D0D0D) : null,
             ),
             
-            
+            // Surface and background colors for AMOLED
             colorScheme: ColorScheme.fromSeed(
               seedColor: Colors.blueGrey,
               brightness: Brightness.dark,
@@ -64,7 +64,7 @@ void main() async {
             ),
           ),
           
-
+          // Start the App with the HomeScreen and pass the settings
           home: HomeScreen(settings: appSettings),
         );
       },
