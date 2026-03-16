@@ -1,56 +1,73 @@
 import 'package:flutter/material.dart';
-import 'package:dynamic_color/dynamic_color.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'ui/screens/home_screen.dart'; 
+import 'package:shared_preferences/shared_preferences.dart';
+
+// Tvoja nova lokacija za AppSettings
+import 'core/app_settings.dart'; 
+import 'ui/screens/home_screen.dart';
 
 void main() async {
+  // Osiguravamo da je sve spremno pre starta
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inicijalizacija baze (Hive)
   await Hive.initFlutter();
   await Hive.openBox('documents_box');
-  runApp(const FSentenceApp());
-}
+  
+  // Učitavanje SharedPreferences za podešavanja
+  final prefs = await SharedPreferences.getInstance();
+  final appSettings = AppSettings(prefs);
 
-class FSentenceApp extends StatelessWidget {
-  const FSentenceApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return DynamicColorBuilder(
-      builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
-        ColorScheme lightColorScheme = lightDynamic ?? ColorScheme.fromSeed(
-          seedColor: Colors.orange,
-        );
-        
-        ColorScheme darkColorScheme = darkDynamic ?? ColorScheme.fromSeed(
-          seedColor: Colors.orange,
-          brightness: Brightness.dark,
-        );
-
+  runApp(
+    // ListenableBuilder sluša svaku promenu u AppSettings
+    ListenableBuilder(
+      listenable: appSettings,
+      builder: (context, _) {
         return MaterialApp(
           title: 'f.Sentence',
           debugShowCheckedModeBanner: false,
+          
+          // Biranje teme na osnovu podešavanja (System, Light, Dark)
+          themeMode: appSettings.themeMode,
+          
+          // Svetla tema
           theme: ThemeData(
             useMaterial3: true,
-            colorScheme: lightColorScheme,
-            textTheme: const TextTheme(
-              headlineLarge: TextStyle(fontWeight: FontWeight.w300),
-              headlineMedium: TextStyle(fontWeight: FontWeight.w300),
-              titleLarge: TextStyle(fontWeight: FontWeight.w300),
-            ),
+            colorSchemeSeed: Colors.blueGrey,
+            brightness: Brightness.light,
+            fontFamily: 'Inter',
           ),
+          
+          // Tamna / AMOLED tema
           darkTheme: ThemeData(
             useMaterial3: true,
-            colorScheme: darkColorScheme,
-            textTheme: const TextTheme(
-              headlineLarge: TextStyle(fontWeight: FontWeight.w300),
-              headlineMedium: TextStyle(fontWeight: FontWeight.w300),
-              titleLarge: TextStyle(fontWeight: FontWeight.w300),
+            brightness: Brightness.dark,
+            colorSchemeSeed: Colors.blueGrey,
+            
+            // AMOLED magija: Ako je uključen, pozadina je čisto crna
+            scaffoldBackgroundColor: appSettings.isAmoled ? Colors.black : null,
+            appBarTheme: AppBarTheme(
+              backgroundColor: appSettings.isAmoled ? Colors.black : null,
+              elevation: 0,
+            ),
+            
+            // Kartice takođe bojimo u crno da ne odudaraju previše
+            cardTheme: CardTheme(
+              color: appSettings.isAmoled ? const Color(0xFF0D0D0D) : null,
+            ),
+            
+            
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.blueGrey,
+              brightness: Brightness.dark,
+              surface: appSettings.isAmoled ? Colors.black : null,
             ),
           ),
-          themeMode: ThemeMode.system, 
-          home: const HomeScreen(),
+          
+
+          home: HomeScreen(settings: appSettings),
         );
       },
-    );
-  }
+    ),
+  );
 }
