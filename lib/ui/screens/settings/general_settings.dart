@@ -19,7 +19,6 @@ class GeneralSettings extends StatelessWidget {
             title: const Text('Accent color'),
             subtitle: const Text('Change app\'s accent color (Material You)'),
             onTap: () {
-              // TODO: Color picker implementation
             },
           ),
           ListTile(
