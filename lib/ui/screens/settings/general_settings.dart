@@ -1,35 +1,35 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/app_settings.dart';
 
-class GeneralSettings extends StatefulWidget {
-  const GeneralSettings({super.key});
+class GeneralSettings extends StatelessWidget {
+  final AppSettings settings;
 
-  @override
-  State<GeneralSettings> createState() => _GeneralSettingsState();
-}
-
-class _GeneralSettingsState extends State<GeneralSettings> {
-  String _currentTheme = 'System';
+  const GeneralSettings({super.key, required this.settings});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('General', style: TextStyle(fontWeight: FontWeight.w300)),
+        title: const Text('General settings', style: TextStyle(fontWeight: FontWeight.w300)),
       ),
       body: ListView(
         children: [
           ListTile(
+            leading: const Icon(Icons.palette_outlined),
             title: const Text('Accent color'),
-            subtitle: const Text('Change app\'s accent color.'),
-            onTap: () {}, // Kasnije dodajemo popup
+            subtitle: const Text('Change app\'s accent color. '),
+            onTap: () {
+
+            },
           ),
           ListTile(
+            leading: const Icon(Icons.dark_mode_outlined),
             title: const Text('Theme'),
-            subtitle: Text(_currentTheme),
-            onTap: () => _showThemePicker(),
+            subtitle: Text(settings.themeLabel),
+            onTap: () => _showThemePicker(context),
           ),
           const ListTile(
+            leading: Icon(Icons.language_outlined),
             title: Text('Language'),
             subtitle: Text('Serbian (Placeholder)'),
           ),
@@ -38,7 +38,7 @@ class _GeneralSettingsState extends State<GeneralSettings> {
     );
   }
 
-  void _showThemePicker() {
+  void _showThemePicker(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => SimpleDialog(
@@ -46,12 +46,12 @@ class _GeneralSettingsState extends State<GeneralSettings> {
         children: ['System', 'Light', 'Dark', 'AMOLED'].map((t) {
           return SimpleDialogOption(
             onPressed: () {
-              setState(() => _currentTheme = t);
+              settings.updateTheme(t);
               Navigator.pop(context);
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Text(t),
+              child: Text(t, style: const TextStyle(fontSize: 16)),
             ),
           );
         }).toList(),
