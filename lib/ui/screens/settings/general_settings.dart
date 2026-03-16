@@ -10,16 +10,16 @@ class GeneralSettings extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('General settings', style: TextStyle(fontWeight: FontWeight.w300)),
+        title: const Text('General', style: TextStyle(fontWeight: FontWeight.w300)),
       ),
       body: ListView(
         children: [
           ListTile(
             leading: const Icon(Icons.palette_outlined),
             title: const Text('Accent color'),
-            subtitle: const Text('Change app\'s accent color. '),
+            subtitle: const Text('Change app\'s accent color (Material You)'),
             onTap: () {
-
+              // TODO: Color picker implementation
             },
           ),
           ListTile(
@@ -31,7 +31,7 @@ class GeneralSettings extends StatelessWidget {
           const ListTile(
             leading: Icon(Icons.language_outlined),
             title: Text('Language'),
-            subtitle: Text('Serbian (Placeholder)'),
+            subtitle: Text('English'),
           ),
         ],
       ),
