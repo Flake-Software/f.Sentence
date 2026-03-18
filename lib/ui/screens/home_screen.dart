@@ -23,11 +23,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           'f.Sentence',
-          style: TextStyle(fontWeight: FontWeight.w300, fontSize: 24),
+          style: TextStyle(
+            fontWeight: FontWeight.w300,
+            fontSize: 24,
+          ),
         ),
         actions: [
           IconButton(
@@ -36,76 +41,110 @@ class _HomeScreenState extends State<HomeScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => SettingsScreen(settings: widget.settings),
+                  builder: (context) =>
+                      SettingsScreen(settings: widget.settings),
                 ),
               );
             },
           ),
         ],
       ),
+
       body: ValueListenableBuilder(
         valueListenable: _docsBox.listenable(),
         builder: (context, Box box, _) {
+          /// EMPTY STATE
           if (box.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.note_add_outlined,
-                    size: 64,
-                    color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'No notes yet',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w300),
-                  ),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.description_outlined,
+                      size: 72,
+                      color: colors.primary.withOpacity(0.6),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'No notes yet',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Tap the button below to create your first note.',
+                      style: TextStyle(
+                        color: colors.outline,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
             );
           }
 
+          /// LIST
           final keys = box.keys.toList().reversed.toList();
 
           return ListView.builder(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
             itemCount: keys.length,
             itemBuilder: (context, index) {
               final key = keys[index];
               final doc = box.get(key);
-              
-              return Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                    width: 0.5,
+
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                margin: const EdgeInsets.only(bottom: 10),
+                child: Material(
+                  color: colors.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(16),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () {
+                      // editor kasnije
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            doc['title'] ??
+                                widget.settings.defaultName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            doc['last_modified'] ?? 'Just now',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colors.outline,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-                margin: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  title: Text(
-                    doc['title'] ?? widget.settings.defaultName,
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  subtitle: Text(
-                    doc['last_modified'] ?? 'Just now',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                  onTap: () {
-                    // Ovde će ići editor kasnije
-                  },
                 ),
               );
             },
           );
         },
       ),
+
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // Ovde ide logika za novu belešku
+          // nova beleška
         },
         label: const Text('New Note'),
         icon: const Icon(Icons.add),
