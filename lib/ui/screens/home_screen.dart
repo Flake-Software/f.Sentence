@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../core/app_settings.dart';
 import 'settings_screen.dart';
+import 'document_viewer_screen.dart'; // Ne zaboravi da importuješ screen za beleške
 
 class HomeScreen extends StatefulWidget {
   final AppSettings settings;
@@ -53,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: ValueListenableBuilder(
         valueListenable: _docsBox.listenable(),
         builder: (context, Box box, _) {
-          /// EMPTY STATE
+          // EMPTY STATE
           if (box.isEmpty) {
             return Center(
               child: Padding(
@@ -88,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
 
-          /// LIST
+          // LIST
           final keys = box.keys.toList().reversed.toList();
 
           return ListView.builder(
@@ -108,7 +109,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: InkWell(
                     borderRadius: BorderRadius.circular(16),
                     onTap: () {
-                      // editor kasnije
+                      // Otvori DocumentViewerScreen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DocumentViewerScreen(
+                            documentKey: key,
+                            settings: widget.settings,
+                          ),
+                        ),
+                      );
                     },
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -116,8 +126,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            doc['title'] ??
-                                widget.settings.defaultName,
+                            doc['title'] ?? widget.settings.defaultName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 16,
@@ -143,8 +154,59 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
 
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // nova beleška
+        onPressed: () async {
+          String? noteName = await showDialog<String>(
+            context: context,
+            builder: (context) {
+              String tempName = '';
+              return AlertDialog(
+                title: const Text('New Note'),
+                content: TextField(
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    hintText: 'Enter note name',
+                  ),
+                  onChanged: (value) {
+                    tempName = value;
+                  },
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      if (tempName.trim().isEmpty) {
+                        tempName = 'Untitled Note';
+                      }
+                      Navigator.pop(context, tempName);
+                    },
+                    child: const Text('Create'),
+                  ),
+                ],
+              );
+            },
+          );
+
+          if (noteName != null) {
+            final newDoc = {
+              'title': noteName,
+              'last_modified': DateTime.now().toString(),
+              // content for Fleather/Parchment će ići ovde kasnije
+            };
+            final key = await _docsBox.add(newDoc);
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DocumentViewerScreen(
+                  documentKey: key,
+                  settings: widget.settings,
+                ),
+              ),
+            );
+          }
         },
         label: const Text('New Note'),
         icon: const Icon(Icons.add),
