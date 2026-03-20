@@ -7,7 +7,13 @@ import 'package:share_plus/share_plus.dart';
 
 class DocumentViewerScreen extends StatefulWidget {
   final String? fileName;
-  const DocumentViewerScreen({super.key, this.fileName});
+  final dynamic documentKey; // Dodato da build u HomeScreen-u ne puca
+
+  const DocumentViewerScreen({
+    super.key, 
+    this.fileName, 
+    this.documentKey, // Prihvatamo ključ koji AI šalje iz Home Screen-a
+  });
 
   @override
   State<DocumentViewerScreen> createState() => _DocumentViewerScreenState();
@@ -24,19 +30,26 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     super.initState();
     _box = Hive.box('documents_box');
     _loadDocument();
-    _controller!.addListener(_autoSave);
+    // Inicijalizujemo listener tek nakon što se kontroler napravi u _loadDocument
+    _controller?.addListener(_autoSave);
   }
 
   void _loadDocument() {
-    final String key = widget.fileName ?? _defaultDocName;
-    final String? savedData = _box.get(key);
+    // Koristimo ili ključ ili fileName, šta god je dostupno
+    final dynamic key = widget.documentKey ?? widget.fileName ?? _defaultDocName;
+    final dynamic savedData = _box.get(key);
 
     if (savedData != null) {
       try {
-        final doc = ParchmentDocument.fromJson(jsonDecode(savedData));
-        _controller = FleatherController(document: doc);
+        // Ako je podatak String (JSON Delta), parsiraj ga
+        if (savedData is String) {
+          final doc = ParchmentDocument.fromJson(jsonDecode(savedData));
+          _controller = FleatherController(document: doc);
+        } else {
+          // Ako je u bazi nešto drugo, napravi prazan
+          _controller = FleatherController();
+        }
       } catch (e) {
-        // Fallback u slučaju greške pri učitavanju
         _controller = FleatherController();
       }
     } else {
@@ -45,21 +58,20 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   }
 
   void _autoSave() {
-    final String key = widget.fileName ?? _defaultDocName;
+    if (_controller == null) return;
+    final dynamic key = widget.documentKey ?? widget.fileName ?? _defaultDocName;
     final deltaData = jsonEncode(_controller!.document.toDelta());
     _box.put(key, deltaData);
   }
 
-  // Funkcija za deljenje sadržaja beleške
   void _shareDocument() {
-    // Pretvaramo Parchment u običan tekst
+    if (_controller == null) return;
     final String plainText = _controller!.document.toPlainText();
     final String title = widget.fileName ?? 'Untitled Note';
-    
+
     if (plainText.trim().isNotEmpty) {
       Share.share(plainText, subject: title);
     } else {
-      // Obaveštenje ako je beleška prazna
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Cannot share an empty note"),
@@ -71,6 +83,8 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_controller == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final bool isKeyboardVisible = bottomInset > 0;
     final safeBottomPadding = MediaQuery.of(context).padding.bottom;
@@ -92,7 +106,6 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
       ),
       body: Stack(
         children: [
-          // Editor površina
           Positioned.fill(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -128,16 +141,11 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
               child: Container(
                 height: 56,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Theme(
-                  data: Theme.of(context).copyWith(
-                    dividerColor: Colors.transparent,
-                  ),
-                  child: Center(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: FleatherToolbar.basic(
-                        controller: _controller!,
-                      ),
+                child: Center(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: FleatherToolbar.basic(
+                      controller: _controller!,
                     ),
                   ),
                 ),
