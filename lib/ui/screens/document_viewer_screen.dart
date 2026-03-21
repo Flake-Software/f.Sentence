@@ -4,15 +4,18 @@ import 'package:fleather/fleather.dart';
 import 'package:parchment/parchment.dart';
 import 'package:hive/hive.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../core/app_settings.dart'; // Dodat import za settings
 
 class DocumentViewerScreen extends StatefulWidget {
   final String? fileName;
-  final dynamic documentKey; // Dodato da build u HomeScreen-u ne puca
+  final dynamic documentKey;
+  final AppSettings? settings; // Dodato da HomeScreen ne vrišti
 
   const DocumentViewerScreen({
     super.key, 
     this.fileName, 
-    this.documentKey, // Prihvatamo ključ koji AI šalje iz Home Screen-a
+    this.documentKey,
+    this.settings, // Prihvatamo settings parametar
   });
 
   @override
@@ -30,23 +33,19 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     super.initState();
     _box = Hive.box('documents_box');
     _loadDocument();
-    // Inicijalizujemo listener tek nakon što se kontroler napravi u _loadDocument
     _controller?.addListener(_autoSave);
   }
 
   void _loadDocument() {
-    // Koristimo ili ključ ili fileName, šta god je dostupno
     final dynamic key = widget.documentKey ?? widget.fileName ?? _defaultDocName;
     final dynamic savedData = _box.get(key);
 
     if (savedData != null) {
       try {
-        // Ako je podatak String (JSON Delta), parsiraj ga
         if (savedData is String) {
           final doc = ParchmentDocument.fromJson(jsonDecode(savedData));
           _controller = FleatherController(document: doc);
         } else {
-          // Ako je u bazi nešto drugo, napravi prazan
           _controller = FleatherController();
         }
       } catch (e) {
