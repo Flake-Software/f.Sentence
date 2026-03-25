@@ -25,7 +25,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Koristimo sllight background boju iz teme umesto onog sivila
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         scrolledUnderElevation: 0,
@@ -71,13 +70,10 @@ class _HomeScreenState extends State<HomeScreen> {
               final key = keys[index];
               final dynamic docData = box.get(key);
               
-              // Handle potential data formats (String for Delta or Map)
               String title = "Untitled Note";
-              if (docData is Map) {
-                title = docData['title'] ?? widget.settings.defaultName;
-              } else if (docData is String) {
-                // If it's just content, maybe use first few chars or key
-                title = "Note ${index + 1}";
+              // Ako je u bazi Delta string, naslov ćemo izvući iz settingsa ili rednog broja
+              if (docData is String) {
+                title = "Note ${keys.length - index}";
               }
 
               return Padding(
@@ -107,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          "Last edited: Just now", // Ovde kasnije dodaj pravi timestamp
+                          "Last edited: Just now",
                           style: TextStyle(
                             fontSize: 12,
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -123,7 +119,11 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openNote(null, widget.settings.defaultName),
+        onPressed: () {
+          // GENERIŠEMO JEDINSTVEN KLJUČ ZA NOVU BELEŠKU
+          final String newKey = "note_${DateTime.now().millisecondsSinceEpoch}";
+          _openNote(newKey, widget.settings.defaultName);
+        },
         label: const Text('New Note', style: TextStyle(fontWeight: FontWeight.w500)),
         icon: const Icon(Icons.add),
         elevation: 4,
