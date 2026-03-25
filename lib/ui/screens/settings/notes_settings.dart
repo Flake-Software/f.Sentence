@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../core/app_settings.dart';
 
 class NotesSettings extends StatefulWidget {
-  final AppSettings settings; // Dodajemo ovo
-  const NotesSettings({super.key, required this.settings}); // Menjamo konstruktor
+  final AppSettings settings;
+  const NotesSettings({super.key, required this.settings});
 
   @override
   State<NotesSettings> createState() => _NotesSettingsState();
@@ -13,47 +13,37 @@ class _NotesSettingsState extends State<NotesSettings> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notes', style: TextStyle(fontWeight: FontWeight.w300)),
-      ),
+      appBar: AppBar(title: const Text('Notes Settings')),
       body: ListView(
         children: [
           ListTile(
-            leading: const Icon(Icons.edit_note_outlined),
-            title: const Text('Default name'),
+            leading: const Icon(Icons.title),
+            title: const Text('Default Note Name'),
             subtitle: Text(widget.settings.defaultName),
-            onTap: () => _showDefaultNameDialog(),
+            onTap: () => _editDefaultName(),
           ),
           SwitchListTile(
-            secondary: const Icon(Icons.folder_open_outlined),
-            title: const Text('Save directly to device'),
-            subtitle: const Text('When switched on, notes will be visible in file manager.'),
-            value: widget.settings.saveToDevice,
-            onChanged: (val) => widget.settings.toggleSaveToDevice(val),
+            title: const Text('Auto-save notes'),
+            value: true, // Ovo možemo dodati u AppSettings kasnije
+            onChanged: (val) {},
           ),
         ],
       ),
     );
   }
 
-  void _showDefaultNameDialog() {
+  void _editDefaultName() {
     final controller = TextEditingController(text: widget.settings.defaultName);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Default Note Name'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(hintText: "Enter name..."),
-        ),
+        title: const Text('Default Name'),
+        content: TextField(controller: controller, autofocus: true),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
             onPressed: () {
-              widget.settings.updateDefaultName(controller.text);
+              setState(() => widget.settings.updateDefaultName(controller.text.trim()));
               Navigator.pop(context);
             },
             child: const Text('Save'),
