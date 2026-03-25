@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/intl.dart'; 
 import '../../core/app_settings.dart';
 import 'settings_screen.dart';
 import 'document_viewer_screen.dart';
@@ -22,34 +23,72 @@ class _HomeScreenState extends State<HomeScreen> {
     _docsBox = Hive.box('documents_box');
   }
 
+  // Funkcija za proveru duplikata imena (New note, New note (1)...)
+  String _generateUniqueName(String baseName) {
+    final existingTitles = _docsBox.values
+        .where((doc) => doc is Map)
+        .map((doc) => doc['title'] as String)
+        .toList();
+
+    if (!existingTitles.contains(baseName)) return baseName;
+
+    int counter = 1;
+    String newName = "$baseName ($counter)";
+    while (existingTitles.contains(newName)) {
+      counter++;
+      newName = "$baseName ($counter)";
+    }
+    return newName;
+  }
+
+  Future<void> _showNewNoteDialog() async {
+    final TextEditingController _controller = TextEditingController();
+    
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('New Note'),
+        content: TextField(
+          controller: _controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: widget.settings.defaultName,
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              String name = _controller.text.trim();
+              if (name.isEmpty) name = widget.settings.defaultName;
+              name = _generateUniqueName(name);
+              
+              Navigator.pop(context);
+              _openNote("note_${DateTime.now().millisecondsSinceEpoch}", name);
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        scrolledUnderElevation: 0,
-        backgroundColor: Colors.transparent,
-        title: const Text(
-          'f.Sentence',
-          style: TextStyle(
-            fontWeight: FontWeight.w300, 
-            fontSize: 26,
-            letterSpacing: -0.5
-          ),
-        ),
+        title: const Text('f.Sentence', style: TextStyle(fontWeight: FontWeight.w300, fontSize: 26)),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: IconButton(
-              icon: const Icon(Icons.settings_outlined, size: 28),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SettingsScreen(settings: widget.settings),
-                  ),
-                );
-              },
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => SettingsScreen(settings: widget.settings)),
             ),
           ),
         ],
@@ -57,61 +96,36 @@ class _HomeScreenState extends State<HomeScreen> {
       body: ValueListenableBuilder(
         valueListenable: _docsBox.listenable(),
         builder: (context, Box box, _) {
-          if (box.isEmpty) {
-            return _buildEmptyState(context);
-          }
+          if (box.isEmpty) return _buildEmptyState(context);
 
           final keys = box.keys.toList().reversed.toList();
 
           return ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.all(16),
             itemCount: keys.length,
             itemBuilder: (context, index) {
               final key = keys[index];
-              final dynamic docData = box.get(key);
+              final doc = box.get(key);
               
-              String title = "Untitled Note";
-              // Ako je u bazi Delta string, naslov ćemo izvući iz settingsa ili rednog broja
-              if (docData is String) {
-                title = "Note ${keys.length - index}";
+              String title = "Untitled";
+              String lastModified = "Unknown";
+              
+              if (doc is Map) {
+                title = doc['title'] ?? "Untitled";
+                if (doc['last_modified'] != null) {
+                  final dt = DateTime.parse(doc['last_modified']);
+                  lastModified = DateFormat('MMM d, HH:mm').format(dt);
+                }
               }
 
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12.0),
-                child: InkWell(
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: ListTile(
+                  title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+                  subtitle: Text("Modified: $lastModified", style: const TextStyle(fontSize: 12)),
+                  trailing: const Icon(Icons.chevron_right),
                   onTap: () => _openNote(key, title),
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
-                        width: 1,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "Last edited: Just now",
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
               );
             },
@@ -119,15 +133,9 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // GENERIŠEMO JEDINSTVEN KLJUČ ZA NOVU BELEŠKU
-          final String newKey = "note_${DateTime.now().millisecondsSinceEpoch}";
-          _openNote(newKey, widget.settings.defaultName);
-        },
-        label: const Text('New Note', style: TextStyle(fontWeight: FontWeight.w500)),
+        onPressed: _showNewNoteDialog,
+        label: const Text('New Note'),
         icon: const Icon(Icons.add),
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
@@ -137,20 +145,9 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.edit_note_rounded,
-            size: 80,
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-          ),
+          Icon(Icons.edit_note_rounded, size: 80, color: Theme.of(context).colorScheme.primary.withOpacity(0.2)),
           const SizedBox(height: 16),
-          Text(
-            'Your thoughts start here',
-            style: TextStyle(
-              fontSize: 18,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w300,
-            ),
-          ),
+          const Text('Your thoughts start here', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w300)),
         ],
       ),
     );
