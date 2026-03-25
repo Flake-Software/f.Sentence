@@ -4,18 +4,18 @@ import 'package:fleather/fleather.dart';
 import 'package:parchment/parchment.dart';
 import 'package:hive/hive.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../core/app_settings.dart'; // Dodat import za settings
+import '../../core/app_settings.dart';
 
 class DocumentViewerScreen extends StatefulWidget {
   final String? fileName;
   final dynamic documentKey;
-  final AppSettings? settings; // Dodato da HomeScreen ne vrišti
+  final AppSettings? settings;
 
   const DocumentViewerScreen({
     super.key, 
     this.fileName, 
     this.documentKey,
-    this.settings, // Prihvatamo settings parametar
+    this.settings,
   });
 
   @override
@@ -25,7 +25,6 @@ class DocumentViewerScreen extends StatefulWidget {
 class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   FleatherController? _controller;
   late Box _box;
-  final String _defaultDocName = "new_note";
   final FocusNode _focusNode = FocusNode();
 
   @override
@@ -37,7 +36,8 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   }
 
   void _loadDocument() {
-    final dynamic key = widget.documentKey ?? widget.fileName ?? _defaultDocName;
+    // Ako nema ključa (što se ne bi smelo desiti sad), fallback na default
+    final dynamic key = widget.documentKey ?? "temp_note";
     final dynamic savedData = _box.get(key);
 
     if (savedData != null) {
@@ -52,15 +52,21 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
         _controller = FleatherController();
       }
     } else {
+      // Ako je nova beleška, kreiramo prazan kontroler
       _controller = FleatherController();
     }
   }
 
   void _autoSave() {
     if (_controller == null) return;
-    final dynamic key = widget.documentKey ?? widget.fileName ?? _defaultDocName;
-    final deltaData = jsonEncode(_controller!.document.toDelta());
-    _box.put(key, deltaData);
+    final dynamic key = widget.documentKey ?? "temp_note";
+    
+    // Čuvamo samo ako dokument nije potpuno prazan (da ne bi punili bazu smećem)
+    final delta = _controller!.document.toDelta();
+    if (delta.length > 1 || delta.first.data != "\n") {
+       final deltaData = jsonEncode(delta);
+       _box.put(key, deltaData);
+    }
   }
 
   void _shareDocument() {
@@ -124,7 +130,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
             ),
           ),
 
-          // Toolbar "Pilula" na dnu
+          // Toolbar "Pilula"
           Positioned(
             bottom: isKeyboardVisible 
                 ? bottomInset + 16 
