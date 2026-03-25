@@ -11,12 +11,7 @@ class DocumentViewerScreen extends StatefulWidget {
   final dynamic documentKey;
   final AppSettings? settings;
 
-  const DocumentViewerScreen({
-    super.key, 
-    this.fileName, 
-    this.documentKey,
-    this.settings,
-  });
+  const DocumentViewerScreen({super.key, this.fileName, this.documentKey, this.settings});
 
   @override
   State<DocumentViewerScreen> createState() => _DocumentViewerScreenState();
@@ -25,148 +20,124 @@ class DocumentViewerScreen extends StatefulWidget {
 class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   FleatherController? _controller;
   late Box _box;
+  late String _currentTitle;
   final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _box = Hive.box('documents_box');
+    _currentTitle = widget.fileName ?? "Untitled";
     _loadDocument();
     _controller?.addListener(_autoSave);
   }
 
   void _loadDocument() {
-    // Ako nema ključa (što se ne bi smelo desiti sad), fallback na default
-    final dynamic key = widget.documentKey ?? "temp_note";
-    final dynamic savedData = _box.get(key);
-
-    if (savedData != null) {
-      try {
-        if (savedData is String) {
-          final doc = ParchmentDocument.fromJson(jsonDecode(savedData));
-          _controller = FleatherController(document: doc);
-        } else {
-          _controller = FleatherController();
-        }
-      } catch (e) {
-        _controller = FleatherController();
-      }
+    final data = _box.get(widget.documentKey);
+    if (data != null && data is Map) {
+      _currentTitle = data['title'] ?? _currentTitle;
+      final doc = ParchmentDocument.fromJson(jsonDecode(data['content']));
+      _controller = FleatherController(document: doc);
     } else {
-      // Ako je nova beleška, kreiramo prazan kontroler
       _controller = FleatherController();
     }
   }
 
   void _autoSave() {
-    if (_controller == null) return;
-    final dynamic key = widget.documentKey ?? "temp_note";
-    
-    // Čuvamo samo ako dokument nije potpuno prazan (da ne bi punili bazu smećem)
-    final delta = _controller!.document.toDelta();
-    if (delta.length > 1 || delta.first.data != "\n") {
-       final deltaData = jsonEncode(delta);
-       _box.put(key, deltaData);
-    }
+    final content = jsonEncode(_controller!.document.toDelta());
+    _box.put(widget.documentKey, {
+      'title': _currentTitle,
+      'content': content,
+      'last_modified': DateTime.now().toIso8601String(),
+    });
   }
 
-  void _shareDocument() {
-    if (_controller == null) return;
-    final String plainText = _controller!.document.toPlainText();
-    final String title = widget.fileName ?? 'Untitled Note';
-
-    if (plainText.trim().isNotEmpty) {
-      Share.share(plainText, subject: title);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Cannot share an empty note"),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_controller == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    final bool isKeyboardVisible = bottomInset > 0;
-    final safeBottomPadding = MediaQuery.of(context).padding.bottom;
-
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      appBar: AppBar(
-        title: Text(
-          widget.fileName ?? 'f.Sentence',
-          style: const TextStyle(fontWeight: FontWeight.w300),
-        ),
+  Future<void> _renameNote() async {
+    final controller = TextEditingController(text: _currentTitle);
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Rename Note'),
+        content: TextField(controller: controller, autofocus: true),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.share_outlined),
-            tooltip: 'Share note',
-            onPressed: _shareDocument,
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: GestureDetector(
-                onTap: () => _focusNode.requestFocus(),
-                child: FleatherEditor(
-                  controller: _controller!,
-                  focusNode: _focusNode,
-                  readOnly: false,
-                  enableInteractiveSelection: true,
-                  padding: EdgeInsets.only(
-                    top: 16, 
-                    bottom: isKeyboardVisible ? bottomInset + 80 : 100,
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // Toolbar "Pilula"
-          Positioned(
-            bottom: isKeyboardVisible 
-                ? bottomInset + 16 
-                : safeBottomPadding + 16,
-            left: 16,
-            right: 16,
-            child: Material(
-              elevation: 6,
-              shadowColor: Colors.black26,
-              borderRadius: BorderRadius.circular(30),
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              clipBehavior: Clip.antiAlias,
-              child: Container(
-                height: 56,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Center(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: FleatherToolbar.basic(
-                      controller: _controller!,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              setState(() => _currentTitle = controller.text.trim());
+              _autoSave();
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
           ),
         ],
       ),
     );
   }
 
+  void _showMenu() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.share_outlined),
+              title: const Text('Share'),
+              onTap: () {
+                Navigator.pop(context);
+                Share.share(_controller!.document.toPlainText(), subject: _currentTitle);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('Rename'),
+              onTap: () {
+                Navigator.pop(context);
+                _renameNote();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.download_outlined),
+              title: const Text('Download (Coming Soon)'),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: Colors.red),
+              title: const Text('Delete', style: TextStyle(color: Colors.red)),
+              onTap: () {
+                _box.delete(widget.documentKey);
+                Navigator.pop(context);
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
-  void dispose() {
-    _controller?.removeListener(_autoSave);
-    _controller?.dispose();
-    _focusNode.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    if (_controller == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: GestureDetector(
+          onTap: _renameNote,
+          child: Text(_currentTitle, style: const TextStyle(fontWeight: FontWeight.w300)),
+        ),
+        actions: [IconButton(icon: const Icon(Icons.more_vert), onPressed: _showMenu)],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: FleatherEditor(
+          controller: _controller!,
+          focusNode: _focusNode,
+          padding: EdgeInsets.only(top: 16, bottom: bottomInset + 100),
+        ),
+      ),
+      
+    );
   }
 }
