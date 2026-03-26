@@ -1,41 +1,57 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hive/hive.dart';
 
 class AppSettings extends ChangeNotifier {
-  final SharedPreferences prefs;
+  late Box _settingsBox;
+  
+  Color _accentColor = Colors.blue;
+  String _themeLabel = 'System';
+  String _defaultName = 'New note';
 
-  AppSettings(this.prefs);
+  AppSettings() {
+    _settingsBox = Hive.box('settings_box');
+    _loadSettings();
+  }
 
+  void _loadSettings() {
+    // Učitavamo boju kao int (ARGB)
+    final int? colorValue = _settingsBox.get('accentColor');
+    if (colorValue != null) {
+      _accentColor = Color(colorValue);
+    }
+    _themeLabel = _settingsBox.get('themeLabel', defaultValue: 'System');
+    _defaultName = _settingsBox.get('defaultName', defaultValue: 'New note');
+    notifyListeners();
+  }
 
-  String get themeLabel => prefs.getString('theme_label') ?? 'System';
-  bool get isAmoled => prefs.getBool('amoled_mode') ?? false;
+  Color get accentColor => _accentColor;
+  String get themeLabel => _themeLabel;
+  String get defaultName => _defaultName;
+
+  void updateAccentColor(Color color) {
+    _accentColor = color;
+    _settingsBox.put('accentColor', color.value);
+    notifyListeners();
+  }
+
+  void updateTheme(String theme) {
+    _themeLabel = theme;
+    _settingsBox.put('themeLabel', theme);
+    notifyListeners();
+  }
+
+  void updateDefaultName(String name) {
+    _defaultName = name;
+    _settingsBox.put('defaultName', name);
+    notifyListeners();
+  }
 
   ThemeMode get themeMode {
-    switch (themeLabel) {
+    switch (_themeLabel) {
       case 'Light': return ThemeMode.light;
       case 'Dark': return ThemeMode.dark;
       case 'AMOLED': return ThemeMode.dark;
       default: return ThemeMode.system;
     }
-  }
-
-  void updateTheme(String label) async {
-    await prefs.setString('theme_label', label);
-    await prefs.setBool('amoled_mode', label == 'AMOLED');
-    notifyListeners(); 
-  }
-
-
-  String get defaultName => prefs.getString('default_name') ?? 'Nova beleška';
-  bool get saveToDevice => prefs.getBool('save_to_device') ?? false;
-
-  void updateDefaultName(String name) async {
-    await prefs.setString('default_name', name);
-    notifyListeners();
-  }
-
-  void toggleSaveToDevice(bool value) async {
-    await prefs.setBool('save_to_device', value);
-    notifyListeners();
   }
 }
