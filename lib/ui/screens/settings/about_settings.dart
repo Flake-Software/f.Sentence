@@ -5,6 +5,8 @@ class AboutSettings extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('About', style: TextStyle(fontWeight: FontWeight.w300)),
@@ -12,63 +14,85 @@ class AboutSettings extends StatelessWidget {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Center(
+            const SizedBox(height: 20),
+            const Text(
+              'f.',
+              style: TextStyle(fontSize: 80, fontWeight: FontWeight.w100),
+            ),
+            const Text(
+              'Sentence',
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, letterSpacing: 4),
+            ),
+            const SizedBox(height: 12),
+            const Text('v1.0.0-beta', style: TextStyle(color: Colors.grey, fontSize: 16)),
+            const SizedBox(height: 60),
+            
+            // Mission Section sa čistijom pozadinom
+            Align(
+              alignment: Alignment.centerLeft,
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(height: 20),
-                  Text(
-                    'f.',
-                    style: TextStyle(fontSize: 80, fontWeight: FontWeight.w100),
+                  const Text(
+                    'Mission',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
+                  const SizedBox(height: 16),
                   Text(
-                    'Sentence',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, letterSpacing: 4),
+                    'A respectful tool for your thoughts. No ads, no trackers, no subscriptions. Built for portability and true creative freedom.',
+                    style: TextStyle(
+                      fontSize: 16, 
+                      height: 1.6, 
+                      fontWeight: FontWeight.w300,
+                      color: colorScheme.onSurface.withOpacity(0.8)
+                    ),
                   ),
-                  SizedBox(height: 12),
-                  Text('v1.0.0-beta', style: TextStyle(color: Colors.grey, fontSize: 16)),
                 ],
               ),
             ),
+            
+            const SizedBox(height: 40),
+            const Divider(height: 1),
+            const SizedBox(height: 20),
+
+            // Ovi ListTile-ovi su bagovali na snimku, stavljamo transparentnu pozadinu
+            _buildInfoTile(
+              context,
+              icon: Icons.code_rounded,
+              title: 'Source Code',
+              subtitle: 'Check out the repository on GitHub',
+            ),
+            _buildInfoTile(
+              context,
+              icon: Icons.history_edu_rounded,
+              title: 'Release Schedule',
+              subtitle: 'v1.0.0 - April 13, 2026',
+            ),
+            
             const SizedBox(height: 60),
-            const Text(
-              'Mission',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'A respectful tool for your thoughts. No ads, no trackers, no subscriptions. Built for portability and true creative freedom.',
-              style: TextStyle(fontSize: 16, height: 1.6, fontWeight: FontWeight.w300),
-            ),
-            const SizedBox(height: 40),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.code_rounded),
-              title: const Text('Source Code'),
-              subtitle: const Text('Check out the repository on GitHub'),
-              onTap: () {
-                // TODO: Dodaj link ka GitHub-u
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.history_edu_rounded),
-              title: const Text('Release Schedule'),
-              subtitle: const Text('v1.0.0 - April 13, 2026'),
-              onTap: () {},
-            ),
-            const SizedBox(height: 40),
-            Center(
-              child: Text(
-                'Made with respect.',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
-                  fontStyle: FontStyle.italic,
-                ),
+            Text(
+              'Made with respect.',
+              style: TextStyle(
+                color: colorScheme.primary.withOpacity(0.5),
+                fontStyle: FontStyle.italic,
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoTile(BuildContext context, {required IconData icon, required String title, required String subtitle}) {
+    return Theme(
+      data: Theme.of(context).copyWith(splashColor: Colors.transparent),
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 13)),
+        onTap: () {},
       ),
     );
   }
