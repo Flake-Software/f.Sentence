@@ -14,7 +14,6 @@ class AppSettings extends ChangeNotifier {
   }
 
   void _loadSettings() {
-    // Učitavamo boju kao int (ARGB)
     final int? colorValue = _settingsBox.get('accentColor');
     if (colorValue != null) {
       _accentColor = Color(colorValue);
