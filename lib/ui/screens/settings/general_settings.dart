@@ -4,7 +4,6 @@ import 'about_settings.dart';
 
 class GeneralSettings extends StatefulWidget {
   final AppSettings settings;
-
   const GeneralSettings({super.key, required this.settings});
 
   @override
@@ -60,39 +59,47 @@ class _GeneralSettingsState extends State<GeneralSettings> {
 
   void _showColorPicker(BuildContext context) {
     final List<Color> colors = [
-      Colors.blue,
-      Colors.purple,
-      Colors.green,
-      Colors.orange,
-      Colors.red,
-      Colors.teal,
-      Colors.indigo,
-      const Color(0xFF212121), // Sophisticated dark slate
+      Colors.blue, Colors.purple, Colors.green, Colors.orange, 
+      Colors.red, Colors.teal, Colors.indigo, const Color(0xFF212121),
     ];
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: const Text('Select color'),
-        content: Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: colors.map((color) {
-            return GestureDetector(
-              onTap: () {
-                widget.settings.updateAccentColor(color);
-                setState(() {});
-                Navigator.pop(context);
-              },
-              child: CircleAvatar(
-                backgroundColor: color,
-                radius: 24,
-                child: widget.settings.accentColor == color 
-                    ? const Icon(Icons.check, color: Colors.white) 
-                    : null,
-              ),
-            );
-          }).toList(),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 16,
+            runSpacing: 16,
+            children: colors.map((color) {
+              final isSelected = widget.settings.accentColor.value == color.value;
+              return GestureDetector(
+                onTap: () {
+                  widget.settings.updateAccentColor(color);
+                  Navigator.pop(context);
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected ? color : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
+                  child: CircleAvatar(
+                    backgroundColor: color,
+                    radius: 20,
+                    child: isSelected ? const Icon(Icons.check, color: Colors.white, size: 20) : null,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
         ),
       ),
     );
@@ -102,18 +109,19 @@ class _GeneralSettingsState extends State<GeneralSettings> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: const Text('Choose theme'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: ['System', 'Light', 'Dark', 'AMOLED'].map((t) {
             return RadioListTile<String>(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               title: Text(t),
               value: t,
               groupValue: widget.settings.themeLabel,
               onChanged: (String? value) {
                 if (value != null) {
                   widget.settings.updateTheme(value);
-                  setState(() {});
                   Navigator.pop(context);
                 }
               },
