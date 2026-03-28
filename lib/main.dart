@@ -1,73 +1,84 @@
+
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-// Your core settings logic
+import 'package:provider/provider.dart'; 
+// Core settings i UI
 import 'core/app_settings.dart'; 
 import 'ui/screens/home_screen.dart';
 
 void main() async {
-  // Ensure Flutter is ready
+  
   WidgetsFlutterBinding.ensureInitialized();
+
   
-  // Initialize Hive and open storage box
   await Hive.initFlutter();
+  await Hive.openBox('settings_box');
   await Hive.openBox('documents_box');
+
   
-  // Load Preferences
-  final prefs = await SharedPreferences.getInstance();
-  final appSettings = AppSettings(prefs);
+
+  final appSettings = AppSettings();
 
   runApp(
-    // ListenableBuilder listens to changes in AppSettings (Theme, AMOLED, etc.)
-    ListenableBuilder(
-      listenable: appSettings,
-      builder: (context, _) {
-        return MaterialApp(
-          title: 'f.Sentence',
-          debugShowCheckedModeBanner: false,
-          
-          // Theme selection based on settings (System, Light, Dark)
-          themeMode: appSettings.themeMode,
-          
-          // Light Theme
-          theme: ThemeData(
-            useMaterial3: true,
-            colorSchemeSeed: Colors.blueGrey,
-            brightness: Brightness.light,
-            fontFamily: 'Inter',
-          ),
-          
-          // Dark / AMOLED Theme
-          darkTheme: ThemeData(
-            useMaterial3: true,
-            brightness: Brightness.dark,
-            colorSchemeSeed: Colors.blueGrey,
-            
-            // AMOLED Logic: Pure black background if enabled
-            scaffoldBackgroundColor: appSettings.isAmoled ? Colors.black : null,
-            appBarTheme: AppBarTheme(
-              backgroundColor: appSettings.isAmoled ? Colors.black : null,
-              elevation: 0,
-            ),
-            
-            // Fixed: Use CardThemeData for Material 3
-            cardTheme: CardThemeData(
-              color: appSettings.isAmoled ? const Color(0xFF0D0D0D) : null,
-            ),
-            
-            // Surface and background colors for AMOLED
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.blueGrey,
-              brightness: Brightness.dark,
-              surface: appSettings.isAmoled ? Colors.black : null,
-            ),
-          ),
-          
-          // Start the App with the HomeScreen and pass the settings
-          home: HomeScreen(settings: appSettings),
-        );
-      },
+    // ChangeNotifierProvider je bolja praksa od ListenableBuilder-a za root nivo
+    ChangeNotifierProvider.value(
+      value: appSettings,
+      child: const MyApp(),
     ),
   );
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    
+    final settings = context.watch<AppSettings>();
+    
+    final bool isAmoled = settings.themeLabel == 'AMOLED';
+
+    return MaterialApp(
+      title: 'f.Sentence',
+      debugShowCheckedModeBanner: false,
+
+      
+      themeMode: settings.themeMode,
+
+      
+      theme: ThemeData(
+        useMaterial3: true,
+        colorSchemeSeed: settings.accentColor,
+        brightness: Brightness.light,
+        fontFamily: 'Inter', 
+      ),
+
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        colorSchemeSeed: settings.accentColor,
+
+        scaffoldBackgroundColor: isAmoled ? Colors.black : null,
+        
+        appBarTheme: AppBarTheme(
+          backgroundColor: isAmoled ? Colors.black : null,
+          elevation: 0,
+          surfaceTintColor: Colors.transparent, // Da ne bi posiveo appBar na skrolovanju
+        ),
+
+        cardTheme: CardThemeData(
+          color: isAmoled ? const Color(0xFF121212) : null,
+          elevation: 0,
+        ),
+
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: settings.accentColor,
+          brightness: Brightness.dark,
+          surface: isAmoled ? Colors.black : null,
+        ),
+      ),
+
+      home: HomeScreen(settings: settings),
+    );
+  }
 }
