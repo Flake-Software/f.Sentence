@@ -27,6 +27,9 @@ class AppSettings extends ChangeNotifier {
   String get themeLabel => _themeLabel;
   String get defaultName => _defaultName;
 
+  // Dodajemo ovo da main.dart ne puca i da AMOLED radi
+  bool get isAmoled => _themeLabel == 'AMOLED';
+
   void updateAccentColor(Color color) {
     _accentColor = color;
     _settingsBox.put('accentColor', color.value);
