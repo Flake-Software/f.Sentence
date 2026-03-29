@@ -36,7 +36,6 @@ Currently in **early development**. Frequent updates and breaking changes are ex
 - PDF editing  
 - PDF annotation  
 - Document creation  
-- Offline collaboration
 
 ## Licensing
 
