@@ -1,3 +1,5 @@
+// This code is released under GNU General Public License v3.0. For more imformation on license, visit https://www.gnu.org/licenses/gpl-3.0.en.html
+
 import 'package:flutter/material.dart';
 import '../../../core/app_settings.dart';
 
