@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../core/app_settings.dart';
-import 'about_settings.dart';
 
 class GeneralSettings extends StatefulWidget {
   final AppSettings settings;
@@ -39,18 +38,6 @@ class _GeneralSettingsState extends State<GeneralSettings> {
             leading: Icon(Icons.language_outlined),
             title: Text('Language'),
             subtitle: Text('English'),
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.info_outline),
-            title: const Text('About f.Sentence'),
-            subtitle: const Text('Mission, version and info'),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AboutSettings()),
-              );
-            },
           ),
         ],
       ),
