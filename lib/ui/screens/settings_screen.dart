@@ -1,7 +1,11 @@
+// This code is released under GNU General Public License v3.0. For more imformation on license, visit https://www.gnu.org/licenses/gpl-3.0.en.html
+
+
 import 'package:flutter/material.dart';
 import '../../core/app_settings.dart';
 import 'settings/general_settings.dart';
 import 'settings/notes_settings.dart';
+import 'settings/about_settings.dart'; // Importujemo About
 
 class SettingsScreen extends StatelessWidget {
   final AppSettings settings;
@@ -11,7 +15,6 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Čist AppBar bez Rail-a, baš kao na tvojim sistemskim podešavanjima
       appBar: AppBar(
         title: const Text(
           'Settings',
@@ -23,7 +26,6 @@ class SettingsScreen extends StatelessWidget {
         children: [
           const SizedBox(height: 8),
           
-          // Ova stavka te šalje u general_settings.dart
           _buildSettingsTile(
             context,
             icon: Icons.settings_outlined,
@@ -38,7 +40,6 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
           
-          // Ova stavka te šalje u notes_settings.dart
           _buildSettingsTile(
             context,
             icon: Icons.edit_note_rounded,
@@ -58,7 +59,21 @@ class SettingsScreen extends StatelessWidget {
             child: Divider(thickness: 0.5),
           ),
           
-          // Za ostale stavke (Help, Advanced) možeš dodati nove fajlove kasnije
+          // About f.Sentence je sada ovde na glavnom ekranu
+          _buildSettingsTile(
+            context,
+            icon: Icons.info_outline_rounded,
+            iconColor: Colors.orange,
+            title: 'About f.Sentence',
+            subtitle: 'Mission, version and info',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AboutSettings(),
+              ),
+            ),
+          ),
+          
           _buildSettingsTile(
             context,
             icon: Icons.help_outline_rounded,
@@ -66,7 +81,7 @@ class SettingsScreen extends StatelessWidget {
             title: 'Help & Feedback',
             subtitle: 'FAQs and contact support',
             onTap: () {
-              // Placeholder
+              // TODO: Implement help
             },
           ),
         ],
@@ -74,7 +89,6 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  // Pomoćni widget da ne kucaš isti kod sto puta
   Widget _buildSettingsTile(
     BuildContext context, {
     required IconData icon,
