@@ -40,7 +40,7 @@ class AboutSettings extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'A respectful tool for your thoughts. No ads, no trackers, no subscriptions. Built for portability and true creative freedom.',
+                    'Creativity, yours. ',
                     style: TextStyle(
                       fontSize: 16, 
                       height: 1.6, 
@@ -66,7 +66,7 @@ class AboutSettings extends StatelessWidget {
             _buildInfoTile(
               context,
               icon: Icons.history_edu_rounded,
-              title: 'Release Schedule',
+              title: 'Next version',
               subtitle: 'v1.0.0 - April 13, 2026',
             ),
             
