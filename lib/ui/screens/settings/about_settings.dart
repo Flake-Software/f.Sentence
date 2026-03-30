@@ -25,10 +25,10 @@ class AboutSettings extends StatelessWidget {
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, letterSpacing: 4),
             ),
             const SizedBox(height: 12),
-            const Text('v1.0.0-beta', style: TextStyle(color: Colors.grey, fontSize: 16)),
+            const Text('v0.8.7-beta', style: TextStyle(color: Colors.grey, fontSize: 16)),
             const SizedBox(height: 60),
             
-            // Mission Section sa čistijom pozadinom
+            
             Align(
               alignment: Alignment.centerLeft,
               child: Column(
