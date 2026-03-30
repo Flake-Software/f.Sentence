@@ -56,18 +56,11 @@ class AboutSettings extends StatelessWidget {
             const Divider(height: 1),
             const SizedBox(height: 20),
 
-            // Ovi ListTile-ovi su bagovali na snimku, stavljamo transparentnu pozadinu
             _buildInfoTile(
               context,
               icon: Icons.code_rounded,
               title: 'Source Code',
               subtitle: 'Check out the repository on GitHub',
-            ),
-            _buildInfoTile(
-              context,
-              icon: Icons.history_edu_rounded,
-              title: 'Next version',
-              subtitle: 'v1.0.0 - April 13, 2026',
             ),
             
             const SizedBox(height: 60),
