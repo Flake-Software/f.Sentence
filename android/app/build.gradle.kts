@@ -1,3 +1,5 @@
+// This code is released under GNU General Public License v3.0. For more imformation on license, visit https://www.gnu.org/licenses/gpl-3.0.en.html
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -21,7 +23,7 @@ android {
         minSdk = 21
         targetSdk = 36
         versionCode = 2
-        versionName = "1.0.1"
+        versionName = "0.8.7-beta"
     }
 
     signingConfigs {
