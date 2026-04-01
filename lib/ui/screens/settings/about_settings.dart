@@ -1,92 +1,61 @@
-import 'package:flutter/material.dart';
 
-class AboutSettings extends StatelessWidget {
-  const AboutSettings({super.key});
+import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+class DependenciesScreen extends StatelessWidget {
+  const DependenciesScreen({super.key});
+
+  final List<Map<String, String>> deps = const [
+    {'name': 'Fleather', 'url': 'https://github.com/ueman/fleather', 'desc': 'Rich text editor for Flutter.'},
+    {'name': 'Hive', 'url': 'https://github.com/hivedb/hive', 'desc': 'Lightweight and fast NoSQL database.'},
+    {'name': 'Dynamic Color', 'url': 'https://github.com/material-foundation/material-dynamic-color-flutter', 'desc': 'Material You support for Android.'},
+    {'name': 'Share Plus', 'url': 'https://github.com/fluttercommunity/plus_plugins', 'desc': 'Share content via the platform UI.'},
+    {'name': 'URL Launcher', 'url': 'https://github.com/flutter/packages', 'desc': 'Launch URLs from the app.'},
+    {'name': 'Animations', 'url': 'https://github.com/flutter/packages', 'desc': 'High-quality pre-built animations.'},
+    {'name': 'Path Provider', 'url': 'https://github.com/flutter/plugins', 'desc': 'Access to common file system locations.'},
+    {'name': 'Intl', 'url': 'https://github.com/dart-lang/i18n', 'desc': 'Internationalization and localization.'},
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('About', style: TextStyle(fontWeight: FontWeight.w300)),
+        title: const Text('Dependencies', style: TextStyle(fontWeight: FontWeight.w300)),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            const Text(
-              'f.',
-              style: TextStyle(fontSize: 80, fontWeight: FontWeight.w100),
-            ),
-            const Text(
-              'Sentence',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, letterSpacing: 4),
-            ),
-            const SizedBox(height: 12),
-            const Text('v0.8.7-beta', style: TextStyle(color: Colors.grey, fontSize: 16)),
-            const SizedBox(height: 60),
-            
-            
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Mission',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Creativity, yours. ',
-                    style: TextStyle(
-                      fontSize: 16, 
-                      height: 1.6, 
-                      fontWeight: FontWeight.w300,
-                      color: colorScheme.onSurface.withOpacity(0.8)
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 40),
-            const Divider(height: 1),
-            const SizedBox(height: 20),
-
-            _buildInfoTile(
-              context,
-              icon: Icons.code_rounded,
-              title: 'Source Code',
-              subtitle: 'Check out the repository on GitHub',
-            ),
-            
-            const SizedBox(height: 60),
-            Text(
-              'Made with respect.',
-              style: TextStyle(
-                color: colorScheme.primary.withOpacity(0.5),
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ],
-        ),
+      body: ListView(
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text('Packages', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey)),
+          ),
+          ...deps.map((item) => ListTile(
+            title: Text(item['name']!, style: const TextStyle(fontWeight: FontWeight.w500)),
+            subtitle: Text(item['desc']!, style: const TextStyle(fontSize: 13)),
+            trailing: const Icon(Icons.open_in_new, size: 18, color: Colors.grey),
+            onTap: () => _launchURL(item['url']!),
+          )),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.description_outlined),
+            title: const Text('View Licenses'),
+            subtitle: const Text('Full legal information for used software'),
+            onTap: () {
+              showLicensePage(
+                context: context,
+                applicationName: 'f.Sentence',
+                applicationVersion: '0.8.7-beta',
+              );
+            },
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildInfoTile(BuildContext context, {required IconData icon, required String title, required String subtitle}) {
-    return Theme(
-      data: Theme.of(context).copyWith(splashColor: Colors.transparent),
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 13)),
-        onTap: () {},
-      ),
-    );
+  void _launchURL(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 }
