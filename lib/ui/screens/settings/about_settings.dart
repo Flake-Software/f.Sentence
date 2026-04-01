@@ -62,12 +62,12 @@ class AboutSettings extends StatelessWidget {
               icon: Icons.code_rounded,
               title: 'Source Code',
               subtitle: 'Check out the repository on GitHub',
-              onTap: () => _launchURL('https://github.com/vaš-repo/f-sentence'), // Zameni sa pravim linkom
+              onTap: () => _launchURL('https://github.com/vaš-repo/f-sentence'),
             ),
 
             _buildInfoTile(
               context,
-              icon: Icons.Extension_outlined,
+              icon: Icons.extension_outlined, // POPRAVLJENO: Malo 'e'
               title: 'Dependencies',
               subtitle: 'Third-party libraries and licenses',
               onTap: () {
