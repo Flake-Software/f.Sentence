@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'settings_screen.dart';
 import '../../core/app_settings.dart';
+import 'document_viewer_screen.dart'; // Tvoj editor
 
 class HomeScreen extends StatefulWidget {
   final AppSettings settings;
@@ -14,140 +17,194 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late Box _docsBox;
+  bool _isGridView = true;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     super.initState();
-    // Otvaramo box koji smo vec inicijalizovali u main.dart
     _docsBox = Hive.box('documents_box');
+  }
+
+  // Čisti Parchment/Fleather JSON za čist tekstualni prikaz u kartici
+  String _getPlainText(dynamic content) {
+    if (content == null) return '';
+    try {
+      if (content is String && content.startsWith('[')) {
+        final List<dynamic> json = jsonDecode(content);
+        return json.map((node) => node['insert']?.toString() ?? '').join('').trim();
+      }
+    } catch (e) {
+      return content.toString();
+    }
+    return content.toString();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // Moderni Search Bar (Floating AppBar)
-          SliverAppBar(
-            floating: true,
-            snap: true,
-            title: _buildSearchBar(),
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            scrolledUnderElevation: 0,
-            automaticallyImplyLeading: false, // Micemo default back dugme
-          ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // Popravljamo vidljivost status bara zavisno od teme
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Theme.of(context).brightness == Brightness.dark 
+            ? Brightness.light : Brightness.dark,
+        systemNavigationBarColor: Colors.transparent,
+      ),
+      child: Scaffold(
+        key: _scaffoldKey,
+        drawer: _buildDrawer(),
+        body: CustomScrollView(
+          slivers: [
+            // MD3 Floating AppBar
+            SliverAppBar(
+              floating: true,
+              snap: true,
+              leading: IconButton(
+                icon: const Icon(Icons.menu_rounded),
+                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+              ),
+              title: Text('f.Sentence', 
+                style: TextStyle(
+                  fontWeight: FontWeight.w300, 
+                  letterSpacing: 1.5,
+                  color: Theme.of(context).colorScheme.onSurface
+                )
+              ),
+              actions: [
+                IconButton(
+                  icon: Icon(_isGridView ? Icons.view_agenda_outlined : Icons.grid_view_outlined),
+                  onPressed: () => setState(() => _isGridView = !_isGridView),
+                ),
+                const SizedBox(width: 8),
+              ],
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              surfaceTintColor: Colors.transparent,
+              centerTitle: false,
+            ),
 
-          // Prikaz beležaka direktno iz Hive-a
-          ValueListenableBuilder(
-            valueListenable: _docsBox.listenable(),
-            builder: (context, Box box, _) {
-              if (box.isEmpty) {
-                return const SliverFillRemaining(
-                  child: Center(
-                    child: Text(
-                      'No notes yet',
-                      style: TextStyle(color: Colors.grey, fontSize: 16),
+            // Hive lista beležaka
+            ValueListenableBuilder(
+              valueListenable: _docsBox.listenable(),
+              builder: (context, Box box, _) {
+                if (box.isEmpty) {
+                  return const SliverFillRemaining(
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.edit_note_rounded, size: 64, color: Colors.grey),
+                          SizedBox(height: 16),
+                          Text('Nema beležaka još uvek.', style: TextStyle(color: Colors.grey)),
+                        ],
+                      ),
                     ),
+                  );
+                }
+
+                final keys = box.keys.toList().reversed.toList();
+
+                if (!_isGridView) {
+                  return SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final key = keys[index];
+                        return _buildNoteCard(key, box.get(key));
+                      },
+                      childCount: keys.length,
+                    ),
+                  );
+                }
+
+                return SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  sliver: SliverMasonryGrid.count(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                    itemBuilder: (context, index) {
+                      final key = keys[index];
+                      return _buildNoteCard(key, box.get(key));
+                    },
+                    childCount: keys.length,
                   ),
                 );
-              }
-
-              final keys = box.keys.toList().reversed.toList(); // Najnovije prvo
-
-              return SliverPadding(
-                padding: const EdgeInsets.all(12),
-                sliver: SliverMasonryGrid.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  itemBuilder: (context, index) {
-                    final key = keys[index];
-                    final note = box.get(key);
-                    // Pretpostavljam da note ima 'title' i 'content' polja
-                    return _buildNoteCard(key, note);
-                  },
-                  childCount: keys.length,
-                ),
-              );
-            },
-          ),
-
-          // Prostor na dnu za FAB
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
-        ],
+              },
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 120)),
+          ],
+        ),
+        
+        // FAB koji vodi na kreiranje nove beleške
+        floatingActionButton: FloatingActionButton.large(
+          onPressed: () => _openEditor(),
+          child: const Icon(Icons.add, size: 32),
+        ),
       ),
-
-      // MD3 FAB
-      floatingActionButton: FloatingActionButton.large(
-        onPressed: () {
-          // Ovde ide tvoja logika za otvaranje editora
-          // npr: Navigator.push(context, MaterialPageRoute(builder: (context) => EditorPage()));
-        },
-        child: const Icon(Icons.add),
-      ),
-      
-      // Donja traka sa brzim alatima
-      bottomNavigationBar: _buildBottomBar(),
     );
   }
 
-  Widget _buildSearchBar() {
-    return Container(
-      height: 52,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.4),
-        borderRadius: BorderRadius.circular(26),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          children: [
-            const Icon(Icons.menu_rounded, color: Colors.grey, size: 22),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Search notes',
-                style: TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.w400),
+  Widget _buildDrawer() {
+    return Drawer(
+      child: Column(
+        children: [
+          DrawerHeader(
+            decoration: BoxDecoration(
+              color: widget.settings.accentColor.withOpacity(0.05),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAttribute.center,
+                children: [
+                  const Text('f.', style: TextStyle(fontSize: 48, fontWeight: FontWeight.w100)),
+                  Text('Sentence', 
+                    style: TextStyle(
+                      fontSize: 16, 
+                      fontWeight: FontWeight.w300, 
+                      letterSpacing: 4,
+                      color: widget.settings.accentColor
+                    )
+                  ),
+                ],
               ),
             ),
-            GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SettingsScreen(settings: widget.settings)),
-              ),
-              child: CircleAvatar(
-                radius: 14,
-                backgroundColor: widget.settings.accentColor.withOpacity(0.8),
-                child: const Icon(Icons.person, size: 18, color: Colors.white),
-              ),
-            ),
-          ],
-        ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings_outlined),
+            title: const Text('Podešavanja'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(
+                builder: (context) => SettingsScreen(settings: widget.settings)
+              ));
+            },
+          ),
+          const Spacer(),
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Text('v0.8.7-beta', style: TextStyle(color: Colors.grey, fontSize: 12)),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildNoteCard(dynamic key, dynamic note) {
-    // Ako note nije Mapa, prilagodi ovo svom modelu podataka
     final String title = note['title'] ?? '';
-    final String content = note['content'] ?? '';
+    final String plainContent = _getPlainText(note['content']);
 
-    return GestureDetector(
-      onTap: () {
-        // Otvaranje postojeće beleške
-      },
-      child: Card(
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
-            width: 1,
-          ),
+    return Card(
+      elevation: 0,
+      margin: _isGridView ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5), 
+          width: 1
         ),
-        // Boja kartice iz settings-a ili default
-        color: Theme.of(context).colorScheme.surface,
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => _openEditor(docKey: key, existingDoc: note),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -155,18 +212,19 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               if (title.isNotEmpty)
                 Text(
-                  title,
+                  title, 
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-              if (title.isNotEmpty) const SizedBox(height: 6),
+              if (title.isNotEmpty) const SizedBox(height: 8),
               Text(
-                content,
-                maxLines: 10,
+                plainContent.isEmpty ? 'Prazna beleška' : plainContent,
+                maxLines: _isGridView ? 12 : 3,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 14,
+                  height: 1.4,
                   color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
@@ -176,19 +234,15 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
-  Widget _buildBottomBar() {
-    return BottomAppBar(
-      height: 60,
-      elevation: 0,
-      color: Colors.transparent,
-      child: Row(
-        children: [
-          IconButton(icon: const Icon(Icons.check_box_outlined, size: 22), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.brush_outlined, size: 22), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.mic_none_rounded, size: 22), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.image_outlined, size: 22), onPressed: () {}),
-        ],
+  void _openEditor({dynamic docKey, dynamic existingDoc}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DocumentViewerScreen(
+          settings: widget.settings,
+          docKey: docKey, // Ako je null, editor zna da je nova beleška
+          document: existingDoc,
+        ),
       ),
     );
   }
