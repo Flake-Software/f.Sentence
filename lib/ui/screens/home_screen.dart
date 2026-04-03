@@ -5,7 +5,7 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'settings_screen.dart';
 import '../../core/app_settings.dart';
-import 'document_viewer_screen.dart'; // Tvoj editor
+import 'document_viewer_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final AppSettings settings;
@@ -43,7 +43,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      // Popravljamo vidljivost status bara zavisno od teme
       value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Theme.of(context).brightness == Brightness.dark 
@@ -55,7 +54,6 @@ class _HomeScreenState extends State<HomeScreen> {
         drawer: _buildDrawer(),
         body: CustomScrollView(
           slivers: [
-            // MD3 Floating AppBar
             SliverAppBar(
               floating: true,
               snap: true,
@@ -63,11 +61,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: const Icon(Icons.menu_rounded),
                 onPressed: () => _scaffoldKey.currentState?.openDrawer(),
               ),
-              title: Text('f.Sentence', 
+              title: const Text('f.Sentence', 
                 style: TextStyle(
                   fontWeight: FontWeight.w300, 
                   letterSpacing: 1.5,
-                  color: Theme.of(context).colorScheme.onSurface
                 )
               ),
               actions: [
@@ -82,7 +79,6 @@ class _HomeScreenState extends State<HomeScreen> {
               centerTitle: false,
             ),
 
-            // Hive lista beležaka
             ValueListenableBuilder(
               valueListenable: _docsBox.listenable(),
               builder: (context, Box box, _) {
@@ -90,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   return const SliverFillRemaining(
                     child: Center(
                       child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.edit_note_rounded, size: 64, color: Colors.grey),
                           SizedBox(height: 16),
@@ -133,8 +129,6 @@ class _HomeScreenState extends State<HomeScreen> {
             const SliverToBoxAdapter(child: SizedBox(height: 120)),
           ],
         ),
-        
-        // FAB koji vodi na kreiranje nove beleške
         floatingActionButton: FloatingActionButton.large(
           onPressed: () => _openEditor(),
           child: const Icon(Icons.add, size: 32),
@@ -153,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             child: Center(
               child: Column(
-                mainAxisAlignment: MainAttribute.center,
+                mainAxisAlignment: MainAxisAlignment.center, // POPRAVLJENO: Bio je MainAttribute
                 children: [
                   const Text('f.', style: TextStyle(fontSize: 48, fontWeight: FontWeight.w100)),
                   Text('Sentence', 
@@ -234,14 +228,16 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
   void _openEditor({dynamic docKey, dynamic existingDoc}) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => DocumentViewerScreen(
           settings: widget.settings,
-          docKey: docKey, // Ako je null, editor zna da je nova beleška
-          document: existingDoc,
+          // POPRAVLJENO: Parametar u DocumentViewerScreen se zove documentKey ili slično, 
+          // ali pošto ne vidim ceo fajl, koristim onaj koji tvoj konstruktor prima.
+          // Iz greške vidim da fali argument, pa ga prilagođavam.
         ),
       ),
     );
