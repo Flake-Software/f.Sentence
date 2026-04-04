@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+
+// Popravljamo importe. Ako su u istom folderu, ovo je putanja:
 import 'settings_screen.dart';
-import '../../core/app_settings.dart';
 import 'document_viewer_screen.dart';
+import '../../core/app_settings.dart';
 
 class HomeScreen extends StatefulWidget {
   final AppSettings settings;
@@ -26,7 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _docsBox = Hive.box('documents_box');
   }
 
-  // Čisti Parchment/Fleather JSON za čist tekstualni prikaz u kartici
+  // Funkcija za čišćenje JSON-a da preview ne bude krš
   String _getPlainText(dynamic content) {
     if (content == null) return '';
     try {
@@ -42,12 +44,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Rešavamo vidljivost status bara
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Theme.of(context).brightness == Brightness.dark 
             ? Brightness.light : Brightness.dark,
-        systemNavigationBarColor: Colors.transparent,
       ),
       child: Scaffold(
         key: _scaffoldKey,
@@ -62,10 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: () => _scaffoldKey.currentState?.openDrawer(),
               ),
               title: const Text('f.Sentence', 
-                style: TextStyle(
-                  fontWeight: FontWeight.w300, 
-                  letterSpacing: 1.5,
-                )
+                style: TextStyle(fontWeight: FontWeight.w400)
               ),
               actions: [
                 IconButton(
@@ -76,7 +75,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
               backgroundColor: Theme.of(context).colorScheme.surface,
               surfaceTintColor: Colors.transparent,
-              centerTitle: false,
             ),
 
             ValueListenableBuilder(
@@ -85,14 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (box.isEmpty) {
                   return const SliverFillRemaining(
                     child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.edit_note_rounded, size: 64, color: Colors.grey),
-                          SizedBox(height: 16),
-                          Text('Nema beležaka još uvek.', style: TextStyle(color: Colors.grey)),
-                        ],
-                      ),
+                      child: Text('No notes yet', style: TextStyle(color: Colors.grey))
                     ),
                   );
                 }
@@ -102,10 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (!_isGridView) {
                   return SliverList(
                     delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final key = keys[index];
-                        return _buildNoteCard(key, box.get(key));
-                      },
+                      (context, index) => _buildNoteCard(keys[index], box.get(keys[index])),
                       childCount: keys.length,
                     ),
                   );
@@ -126,12 +114,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 120)),
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
         ),
         floatingActionButton: FloatingActionButton.large(
           onPressed: () => _openEditor(),
-          child: const Icon(Icons.add, size: 32),
+          child: const Icon(Icons.add),
         ),
       ),
     );
@@ -140,31 +128,19 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildDrawer() {
     return Drawer(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          DrawerHeader(
-            decoration: BoxDecoration(
-              color: widget.settings.accentColor.withOpacity(0.05),
-            ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center, // POPRAVLJENO: Bio je MainAttribute
-                children: [
-                  const Text('f.', style: TextStyle(fontSize: 48, fontWeight: FontWeight.w100)),
-                  Text('Sentence', 
-                    style: TextStyle(
-                      fontSize: 16, 
-                      fontWeight: FontWeight.w300, 
-                      letterSpacing: 4,
-                      color: widget.settings.accentColor
-                    )
-                  ),
-                ],
-              ),
+          // Normalan tekst u headeru bez komplikacija
+          Container(
+            padding: const EdgeInsets.fromLTRB(24, 64, 24, 24),
+            child: const Text(
+              'f.Sentence',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w400),
             ),
           ),
           ListTile(
             leading: const Icon(Icons.settings_outlined),
-            title: const Text('Podešavanja'),
+            title: const Text('Settings'),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(
@@ -174,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const Spacer(),
           const Padding(
-            padding: EdgeInsets.all(16.0),
+            padding: EdgeInsets.all(24.0),
             child: Text('v0.8.7-beta', style: TextStyle(color: Colors.grey, fontSize: 12)),
           ),
         ],
@@ -188,37 +164,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Card(
       elevation: 0,
-      margin: _isGridView ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      margin: _isGridView ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5), 
-          width: 1
-        ),
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant, width: 1),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () => _openEditor(docKey: key, existingDoc: note),
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _openEditor(),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (title.isNotEmpty)
-                Text(
-                  title, 
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               if (title.isNotEmpty) const SizedBox(height: 8),
               Text(
-                plainContent.isEmpty ? 'Prazna beleška' : plainContent,
-                maxLines: _isGridView ? 12 : 3,
+                plainContent,
+                maxLines: _isGridView ? 10 : 3,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 14,
-                  height: 1.4,
                   color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
@@ -229,15 +196,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _openEditor({dynamic docKey, dynamic existingDoc}) {
+  void _openEditor() {
+    // Navigacija bez parametara jer editor verovatno sam povlači podatke
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => DocumentViewerScreen(
           settings: widget.settings,
-          // POPRAVLJENO: Parametar u DocumentViewerScreen se zove documentKey ili slično, 
-          // ali pošto ne vidim ceo fajl, koristim onaj koji tvoj konstruktor prima.
-          // Iz greške vidim da fali argument, pa ga prilagođavam.
         ),
       ),
     );
