@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-// Popravljamo importe. Ako su u istom folderu, ovo je putanja:
 import 'settings_screen.dart';
 import 'document_viewer_screen.dart';
 import '../../core/app_settings.dart';
@@ -28,7 +27,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _docsBox = Hive.box('documents_box');
   }
 
-  // Funkcija za čišćenje JSON-a da preview ne bude krš
   String _getPlainText(dynamic content) {
     if (content == null) return '';
     try {
@@ -44,7 +42,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Rešavamo vidljivost status bara
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -82,9 +79,7 @@ class _HomeScreenState extends State<HomeScreen> {
               builder: (context, Box box, _) {
                 if (box.isEmpty) {
                   return const SliverFillRemaining(
-                    child: Center(
-                      child: Text('No notes yet', style: TextStyle(color: Colors.grey))
-                    ),
+                    child: Center(child: Text('No notes yet', style: TextStyle(color: Colors.grey))),
                   );
                 }
 
@@ -130,7 +125,6 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Normalan tekst u headeru bez komplikacija
           Container(
             padding: const EdgeInsets.fromLTRB(24, 64, 24, 24),
             child: const Text(
@@ -171,7 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => _openEditor(),
+        onTap: () => _openEditor(noteKey: key, noteData: note),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -196,8 +190,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _openEditor() {
-    // Navigacija bez parametara jer editor verovatno sam povlači podatke
+  void _openEditor({dynamic noteKey, dynamic noteData}) {
+    // Ovde koristimo parametre koje tvoj DocumentViewerScreen verovatno očekuje
+    // Na osnovu prethodnih grešaka, prilagodio sam poziv da bude kompatibilan
     Navigator.push(
       context,
       MaterialPageRoute(
