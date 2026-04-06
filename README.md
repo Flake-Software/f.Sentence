@@ -19,6 +19,8 @@
   <img src="https://img.shields.io/badge/FOSS-100%25-success" />
 </p>
 
+> Some features are currently in development and will be available soon.
+
 ---
 
 ## 📖 About
@@ -28,11 +30,11 @@
 It goes far beyond a simple text editor, offering tools for:
 
 - 📝 Document creation and editing  
-- ✍️ Note-taking with formatting options (coming soon!) 
-- 📄 PDF reading, editing, and annotation (coming soon!) 
-- 🧠 Mind-mapping (coming soon!) 
-- 🎨 Whiteboards (coming soon!) 
-- 🔌 Offline collaboration! (coming soon!) 
+- ✍️ Note-taking with formatting options *(planned)*  
+- 📄 PDF reading, editing, and annotation *(planned)*  
+- 🧠 Mind-mapping *(planned)*  
+- 🎨 Whiteboards *(planned)*  
+- 🔌 Offline collaboration! *(planned)*
 
 > **100% Free and Open Source Software (FOSS)**  
 > No ads. No in-app purchases. No nonsense.
