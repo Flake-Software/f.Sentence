@@ -12,44 +12,106 @@ class NotesSettings extends StatefulWidget {
 class _NotesSettingsState extends State<NotesSettings> {
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Notes Settings')),
+      backgroundColor: theme.colorScheme.surface,
+      appBar: AppBar(
+        title: const Text('Notes', style: TextStyle(fontWeight: FontWeight.w400)),
+        backgroundColor: theme.colorScheme.surface,
+        elevation: 0,
+      ),
       body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: [
-          ListTile(
-            leading: const Icon(Icons.title),
-            title: const Text('Default Note Name'),
-            subtitle: Text(widget.settings.defaultName),
-            onTap: () => _editDefaultName(),
+          _buildSettingsGroup(
+            context,
+            title: "Defaults",
+            children: [
+              _buildModernActionTile(
+                context,
+                icon: Icons.title_rounded,
+                title: 'Default Name',
+                subtitle: widget.settings.defaultName,
+                onTap: () {
+                  // TODO: Edit dialog
+                },
+              ),
+            ],
           ),
-          SwitchListTile(
-            title: const Text('Auto-save notes'),
-            value: true, // Ovo možemo dodati u AppSettings kasnije
-            onChanged: (val) {},
+          const SizedBox(height: 16),
+          _buildSettingsGroup(
+            context,
+            title: "Editor Preferences",
+            children: [
+              _buildModernSwitchTile(
+                context,
+                icon: Icons.spellcheck_rounded,
+                title: 'Auto-correct',
+                value: true,
+                onChanged: (val) {},
+              ),
+              _buildDivider(),
+              _buildModernSwitchTile(
+                context,
+                icon: Icons.format_list_bulleted_rounded,
+                title: 'Markdown Toolbar',
+                value: true,
+                onChanged: (val) {},
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  void _editDefaultName() {
-    final controller = TextEditingController(text: widget.settings.defaultName);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Default Name'),
-        content: TextField(controller: controller, autofocus: true),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              setState(() => widget.settings.updateDefaultName(controller.text.trim()));
-              Navigator.pop(context);
-            },
-            child: const Text('Save'),
+  Widget _buildSettingsGroup(BuildContext context, {required String title, required List<Widget> children}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 16, bottom: 8, top: 8),
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
-        ],
-      ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Column(children: children),
+        ),
+      ],
     );
+  }
+
+  Widget _buildModernSwitchTile(BuildContext context, {required IconData icon, required String title, required bool value, required Function(bool) onChanged}) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      leading: Icon(icon),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+      trailing: Switch(value: value, onChanged: onChanged),
+    );
+  }
+
+  Widget _buildModernActionTile(BuildContext context, {required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      leading: Icon(icon),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+      subtitle: Text(subtitle, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+      onTap: onTap,
+    );
+  }
+
+  Widget _buildDivider() {
+    return Divider(height: 1, thickness: 0.5, indent: 64, endIndent: 20, color: Colors.grey.withOpacity(0.2));
   }
 }
