@@ -1,5 +1,3 @@
-// This code is released under GNU General Public License v3.0. For more imformation on license, visit https://www.gnu.org/licenses/gpl-3.0.en.html
-
 import 'package:flutter/material.dart';
 import '../../../core/app_settings.dart';
 
@@ -14,110 +12,109 @@ class GeneralSettings extends StatefulWidget {
 class _GeneralSettingsState extends State<GeneralSettings> {
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
-        title: const Text('General', style: TextStyle(fontWeight: FontWeight.w300)),
+        title: const Text('General', style: TextStyle(fontWeight: FontWeight.w400)),
+        backgroundColor: theme.colorScheme.surface,
+        elevation: 0,
       ),
       body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: [
-          ListTile(
-            leading: const Icon(Icons.palette_outlined),
-            title: const Text('Accent color'),
-            subtitle: const Text('Change the app\'s primary color'),
-            trailing: CircleAvatar(
-              backgroundColor: widget.settings.accentColor,
-              radius: 12,
-            ),
-            onTap: () => _showColorPicker(context),
+          _buildSettingsGroup(
+            context,
+            title: "Appearance",
+            children: [
+              _buildModernSwitchTile(
+                context,
+                icon: Icons.dark_mode_outlined,
+                title: 'Dark Mode',
+                value: widget.settings.isDarkMode,
+                onChanged: (val) => setState(() {
+                  widget.settings.isDarkMode = val;
+                  // TODO: Implement save
+                }),
+              ),
+              _buildDivider(),
+              _buildModernActionTile(
+                context,
+                icon: Icons.palette_outlined,
+                title: 'Accent Color',
+                subtitle: 'Customize app highlights',
+                onTap: () {
+                  // TODO: Color picker
+                },
+              ),
+            ],
           ),
-          ListTile(
-            leading: const Icon(Icons.dark_mode_outlined),
-            title: const Text('Theme'),
-            subtitle: Text(widget.settings.themeLabel),
-            onTap: () => _showThemePicker(context),
-          ),
-          const ListTile(
-            leading: Icon(Icons.language_outlined),
-            title: Text('Language'),
-            subtitle: Text('English'),
+          const SizedBox(height: 16),
+          _buildSettingsGroup(
+            context,
+            title: "Localization",
+            children: [
+              _buildModernActionTile(
+                context,
+                icon: Icons.translate_rounded,
+                title: 'Language',
+                subtitle: 'English (US)',
+                onTap: () {},
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  void _showColorPicker(BuildContext context) {
-    final List<Color> colors = [
-      Colors.blue, Colors.purple, Colors.green, Colors.orange, 
-      Colors.red, Colors.teal, Colors.indigo, const Color(0xFF212121),
-    ];
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Select color'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 16,
-            runSpacing: 16,
-            children: colors.map((color) {
-              final isSelected = widget.settings.accentColor.value == color.value;
-              return GestureDetector(
-                onTap: () {
-                  widget.settings.updateAccentColor(color);
-                  Navigator.pop(context);
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isSelected ? color : Colors.transparent,
-                      width: 2,
-                    ),
-                  ),
-                  child: CircleAvatar(
-                    backgroundColor: color,
-                    radius: 20,
-                    child: isSelected ? const Icon(Icons.check, color: Colors.white, size: 20) : null,
-                  ),
-                ),
-              );
-            }).toList(),
+  Widget _buildSettingsGroup(BuildContext context, {required String title, required List<Widget> children}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 16, bottom: 8, top: 8),
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
         ),
-      ),
+        Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Column(children: children),
+        ),
+      ],
     );
   }
 
-  void _showThemePicker(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Choose theme'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: ['System', 'Light', 'Dark', 'AMOLED'].map((t) {
-            return RadioListTile<String>(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Text(t),
-              value: t,
-              groupValue: widget.settings.themeLabel,
-              onChanged: (String? value) {
-                if (value != null) {
-                  widget.settings.updateTheme(value);
-                  Navigator.pop(context);
-                }
-              },
-            );
-          }).toList(),
-        ),
-      ),
+  Widget _buildModernSwitchTile(BuildContext context, {required IconData icon, required String title, required bool value, required Function(bool) onChanged}) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      leading: Icon(icon),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+      trailing: Switch(value: value, onChanged: onChanged),
     );
+  }
+
+  Widget _buildModernActionTile(BuildContext context, {required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      leading: Icon(icon),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+      subtitle: Text(subtitle, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+      onTap: onTap,
+    );
+  }
+
+  Widget _buildDivider() {
+    return Divider(height: 1, thickness: 0.5, indent: 64, endIndent: 20, color: Colors.grey.withOpacity(0.2));
   }
 }
