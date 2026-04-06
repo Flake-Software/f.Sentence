@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart'; 
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../core/app_settings.dart';
 import 'settings_screen.dart';
 import 'document_viewer_screen.dart';
@@ -16,6 +19,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late Box _docsBox;
+  bool _isGridView = true; // Default na grid
 
   @override
   void initState() {
@@ -23,7 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _docsBox = Hive.box('documents_box');
   }
 
-  // Funkcija za proveru duplikata imena (New note, New note (1)...)
+  // Tvoja originalna logika za imena
   String _generateUniqueName(String baseName) {
     final existingTitles = _docsBox.values
         .where((doc) => doc is Map)
@@ -41,9 +45,23 @@ class _HomeScreenState extends State<HomeScreen> {
     return newName;
   }
 
+  // Pomoćna funkcija za preview teksta iz JSON-a
+  String _getPlainText(dynamic content) {
+    if (content == null) return '';
+    try {
+      if (content is String && content.startsWith('[')) {
+        final List<dynamic> json = jsonDecode(content);
+        return json.map((node) => node['insert']?.toString() ?? '').join('').trim();
+      }
+    } catch (e) {
+      return content.toString();
+    }
+    return content.toString();
+  }
+
   Future<void> _showNewNoteDialog() async {
     final TextEditingController _controller = TextEditingController();
-    
+
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -66,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
               String name = _controller.text.trim();
               if (name.isEmpty) name = widget.settings.defaultName;
               name = _generateUniqueName(name);
-              
+
               Navigator.pop(context);
               _openNote("note_${DateTime.now().millisecondsSinceEpoch}", name);
             },
@@ -84,6 +102,11 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('f.Sentence', style: TextStyle(fontWeight: FontWeight.w300, fontSize: 26)),
         actions: [
+          // NOVI TOGGLE DUGME
+          IconButton(
+            icon: Icon(_isGridView ? Icons.view_agenda_outlined : Icons.grid_view_outlined),
+            onPressed: () => setState(() => _isGridView = !_isGridView),
+          ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => Navigator.push(
@@ -100,34 +123,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
           final keys = box.keys.toList().reversed.toList();
 
+          if (_isGridView) {
+            return MasonryGridView.count(
+              padding: const EdgeInsets.all(16),
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              itemCount: keys.length,
+              itemBuilder: (context, index) {
+                final key = keys[index];
+                return _buildGridCard(key, box.get(key));
+              },
+            );
+          }
+
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: keys.length,
             itemBuilder: (context, index) {
               final key = keys[index];
-              final doc = box.get(key);
-              
-              String title = "Untitled";
-              String lastModified = "Unknown";
-              
-              if (doc is Map) {
-                title = doc['title'] ?? "Untitled";
-                if (doc['last_modified'] != null) {
-                  final dt = DateTime.parse(doc['last_modified']);
-                  lastModified = DateFormat('MMM d, HH:mm').format(dt);
-                }
-              }
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: ListTile(
-                  title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
-                  subtitle: Text("Modified: $lastModified", style: const TextStyle(fontSize: 12)),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _openNote(key, title),
-                ),
-              );
+              return _buildListCard(key, box.get(key));
             },
           );
         },
@@ -136,6 +151,82 @@ class _HomeScreenState extends State<HomeScreen> {
         onPressed: _showNewNoteDialog,
         label: const Text('New Note'),
         icon: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  // Tvoj originalni List kartica
+  Widget _buildListCard(dynamic key, dynamic doc) {
+    String title = "Untitled";
+    String lastModified = "Unknown";
+    String previewText = "";
+
+    if (doc is Map) {
+      title = doc['title'] ?? "Untitled";
+      previewText = _getPlainText(doc['content']);
+      if (doc['last_modified'] != null) {
+        final dt = DateTime.parse(doc['last_modified']);
+        lastModified = DateFormat('MMM d, HH:mm').format(dt);
+      }
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+        subtitle: Text(
+          previewText.isNotEmpty ? previewText : "Modified: $lastModified",
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 12),
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => _openNote(key, title),
+      ),
+    );
+  }
+
+  // Nova Grid kartica (Keep stil)
+  Widget _buildGridCard(dynamic key, dynamic doc) {
+    String title = "Untitled";
+    String previewText = "";
+
+    if (doc is Map) {
+      title = doc['title'] ?? "Untitled";
+      previewText = _getPlainText(doc['content']);
+    }
+
+    return Card(
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5)),
+      ),
+      elevation: 0,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _openNote(key, title),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              if (previewText.isNotEmpty) const SizedBox(height: 8),
+              if (previewText.isNotEmpty)
+                Text(
+                  previewText,
+                  maxLines: 8,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -158,8 +249,8 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => DocumentViewerScreen(
-          documentKey: key,
-          fileName: title,
+          documentKey: key, // Provereno: Ovi parametri rade
+          fileName: title,   // Provereno: Ovi parametri rade
           settings: widget.settings,
         ),
       ),
