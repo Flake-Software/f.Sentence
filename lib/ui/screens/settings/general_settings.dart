@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import '../../../core/app_settings.dart';
 
@@ -11,6 +10,28 @@ class GeneralSettings extends StatefulWidget {
 }
 
 class _GeneralSettingsState extends State<GeneralSettings> {
+  // Mapa za povezivanje Flutter boja sa imenima na srpskom/bosanskom
+  final Map<Color, String> _colorNames = {
+    Colors.blue: 'Plava',
+    Colors.red: 'Crvena',
+    Colors.green: 'Zelena',
+    Colors.orange: 'Narandžasta',
+    Colors.purple: 'Ljubičasta',
+    Colors.pink: 'Roze',
+    Colors.teal: 'Tirkizna',
+    Colors.amber: 'Ćilibar',
+    Colors.deepPurple: 'Tamno ljubičasta',
+    Colors.indigo: 'Indigo',
+  };
+
+  // Funkcija koja pronalazi ime boje
+  String _getColorName(Color color) {
+    for (var entry in _colorNames.entries) {
+      if (entry.key.value == color.value) return entry.value;
+    }
+    return "Custom";
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -45,11 +66,21 @@ class _GeneralSettingsState extends State<GeneralSettings> {
                     context,
                     icon: Icons.palette_outlined,
                     title: 'Accent Color',
-                    subtitle: 'Current: #${widget.settings.accentColor.value.toRadixString(16).substring(2).toUpperCase()}',
-                    onTap: () {
-                      // Ovde bi išao color picker, za sada samo primer:
-                      widget.settings.updateAccentColor(Colors.deepPurple);
-                    },
+                    subtitle: _getColorName(widget.settings.accentColor),
+                    // Indikator trenutne boje sa desne strane
+                    trailing: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: widget.settings.accentColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: theme.colorScheme.outlineVariant,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                    onTap: () => _showColorPicker(),
                   ),
                 ],
               ),
@@ -74,11 +105,53 @@ class _GeneralSettingsState extends State<GeneralSettings> {
     );
   }
 
+  void _showColorPicker() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Accent Color'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: GridView.count(
+            shrinkWrap: true,
+            crossAxisCount: 5,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
+            children: _colorNames.keys.map((color) {
+              final isSelected = widget.settings.accentColor.value == color.value;
+              return InkWell(
+                onTap: () {
+                  widget.settings.updateAccentColor(color);
+                  Navigator.pop(context);
+                },
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: isSelected
+                        ? Border.all(color: Theme.of(context).colorScheme.onSurface, width: 3)
+                        : null,
+                  ),
+                  child: isSelected 
+                      ? const Icon(Icons.check, color: Colors.white, size: 20) 
+                      : null,
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showThemeDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Choose Theme'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: ['System', 'Light', 'Dark', 'AMOLED'].map((t) {
@@ -86,6 +159,7 @@ class _GeneralSettingsState extends State<GeneralSettings> {
               title: Text(t),
               value: t,
               groupValue: widget.settings.themeLabel,
+              activeColor: widget.settings.accentColor,
               onChanged: (val) {
                 if (val != null) widget.settings.updateTheme(val);
                 Navigator.pop(context);
@@ -123,12 +197,20 @@ class _GeneralSettingsState extends State<GeneralSettings> {
     );
   }
 
-  Widget _buildModernActionTile(BuildContext context, {required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
+  Widget _buildModernActionTile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    Widget? trailing,
+  }) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       leading: Icon(icon, color: Theme.of(context).colorScheme.onSurfaceVariant),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
       subtitle: Text(subtitle, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
+      trailing: trailing,
       onTap: onTap,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
     );
