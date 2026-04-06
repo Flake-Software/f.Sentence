@@ -12,15 +12,15 @@ class GeneralSettings extends StatefulWidget {
 class _GeneralSettingsState extends State<GeneralSettings> {
   // Mapa za povezivanje Flutter boja sa imenima na srpskom/bosanskom
   final Map<Color, String> _colorNames = {
-    Colors.blue: 'Plava',
-    Colors.red: 'Crvena',
-    Colors.green: 'Zelena',
-    Colors.orange: 'Narandžasta',
-    Colors.purple: 'Ljubičasta',
-    Colors.pink: 'Roze',
-    Colors.teal: 'Tirkizna',
-    Colors.amber: 'Ćilibar',
-    Colors.deepPurple: 'Tamno ljubičasta',
+    Colors.blue: 'Blue',
+    Colors.red: 'Red',
+    Colors.green: 'Green',
+    Colors.orange: 'Orange',
+    Colors.purple: 'Purple',
+    Colors.pink: 'Pink',
+    Colors.teal: 'Turqouise',
+    Colors.amber: 'Amber',
+    Colors.deepPurple: 'Dark Purple',
     Colors.indigo: 'Indigo',
   };
 
