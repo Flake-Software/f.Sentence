@@ -28,11 +28,11 @@
 It goes far beyond a simple text editor, offering tools for:
 
 - 📝 Document creation and editing  
-- ✍️ Note-taking with formatting options  
-- 📄 PDF reading, editing, and annotation  
-- 🧠 Mind-mapping  
-- 🎨 Whiteboards  
-- 🔌 Offline collaboration!  
+- ✍️ Note-taking with formatting options (coming soon!) 
+- 📄 PDF reading, editing, and annotation (coming soon!) 
+- 🧠 Mind-mapping (coming soon!) 
+- 🎨 Whiteboards (coming soon!) 
+- 🔌 Offline collaboration! (coming soon!) 
 
 > **100% Free and Open Source Software (FOSS)**  
 > No ads. No in-app purchases. No nonsense.
