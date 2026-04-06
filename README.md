@@ -1,8 +1,28 @@
 # f.Sentence
 
-<img width="512" height="512" alt="20260309_185950_0000" src="https://github.com/user-attachments/assets/16279538-eb2f-4aa4-8ab1-7ec59f461cad" />
+<p align="center">
+  <img width="200" height="200" alt="f.Sentence logo" src="https://github.com/user-attachments/assets/16279538-eb2f-4aa4-8ab1-7ec59f461cad" />
+</p>
 
-[![Build f.Sentence](https://github.com/Flake-Software/f.Sentence/actions/workflows/dart.yml/badge.svg?branch=main)](https://github.com/Flake-Software/f.Sentence/actions/workflows/dart.yml)
+<p align="center">
+  <b>Powerful. Free. Open.</b><br>
+  A next-generation document editor for everyone.
+</p>
+
+<p align="center">
+  <a href="https://github.com/Flake-Software/f.Sentence/actions/workflows/dart.yml">
+    <img src="https://github.com/Flake-Software/f.Sentence/actions/workflows/dart.yml/badge.svg?branch=main" alt="Build Status">
+  </a>
+  <img src="https://img.shields.io/badge/platform-Android-green" alt="Platform">
+  <img src="https://img.shields.io/badge/platform-Android%20TV-green" alt="Platform">
+  <img src="https://img.shields.io/badge/license-GPLv3-blue" alt="License">
+  <img src="https://img.shields.io/badge/status-early%20development-orange" alt="Status">
+  <img src="https://img.shields.io/badge/FOSS-100%25-success" alt="FOSS">
+</p>
+
+---
+
+## ✨ About
 
 **f.Sentence** is an open-source document editor and productivity app built for students, creatives, and anyone who wants to get work done efficiently across multiple document types. Designed for Android devices and Android TV, it aims to bring professional-grade features to everyone, completely free of charge.
 
@@ -14,22 +34,28 @@ It goes far beyond a simple text editor, offering tools for:
 - Whiteboards
 - Offline collaboration! 
 
-**100% Free and Open Source Software (FOSS)**  
-No ads. No in-app purchases. No nonsense.
+> 🚀 **100% Free and Open Source Software (FOSS)**  
+> No ads. No in-app purchases. No nonsense.
 
-## Development Status
+---
+
+## 🚧 Development Status
 
 Currently in **early development**. Frequent updates and breaking changes are expected as the app matures.
 
-**Supported platforms:**  
+### 📱 Supported platforms:
 - Android 5.0 and higher  
 - Android TV 5.0 and higher  
 
-## Current Features
+---
+
+## 🧩 Current Features
 
 - Note-taking with rich text formatting
 
-## Upcoming Features
+---
+
+## 🔮 Upcoming Features
 
 - Opening documents from internal storage  
 - PDF reading  
@@ -37,25 +63,33 @@ Currently in **early development**. Frequent updates and breaking changes are ex
 - PDF annotation  
 - Document creation  
 
-## Licensing
+---
+
+## 📜 Licensing
 
 This project is licensed under the [GNU General Public License v3.0](LICENSE).
 
-## Contributing
+---
+
+## 🤝 Contributing
 
 We would love to have your contributions! Here’s how you can help:  
   
 - Contribute to the source code (you can request contributor access or fork the repo)  
 - Share feedback and ideas  
 
-**Contribution rules:**  
+### 📌 Contribution rules:
 - Please respect our [Code of Conduct](CODE_OF_CONDUCT.md) (based on the Contributor Covenant)  
 - Discuss major changes before submitting large pull requests  
 
-## Credits
+---
+
+## 💙 Credits
 
 Thanks to all contributors that helped us on our journey. 
 
 ---
 
-© 2025 - 2026. Flake. 
+<p align="center">
+  © 2025 - 2026. Flake.
+</p>
