@@ -1,21 +1,22 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:fleather/fleather.dart';
-import 'package:parchment/parchment.dart';
 import 'package:hive/hive.dart';
+import 'package:flutter_quill/flutter_quill.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../core/app_settings.dart';
+import '../../../core/app_settings.dart';
 
 class DocumentViewerScreen extends StatefulWidget {
-  final String? fileName;
   final dynamic documentKey;
-  final AppSettings? settings;
+  final String fileName;
+  final AppSettings settings;
 
   const DocumentViewerScreen({
-    super.key, 
-    this.fileName, 
-    this.documentKey, 
-    this.settings
+    super.key,
+    required this.documentKey,
+    required this.fileName,
+    required this.settings,
   });
 
   @override
@@ -23,133 +24,188 @@ class DocumentViewerScreen extends StatefulWidget {
 }
 
 class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
-  FleatherController? _controller;
-  late Box _box;
+  late Box _docsBox;
+  late QuillController _controller;
   late String _currentTitle;
-  final FocusNode _focusNode = FocusNode();
+  bool _isEditing = false;
 
   @override
   void initState() {
     super.initState();
-    _box = Hive.box('documents_box');
-    _currentTitle = widget.fileName ?? "Untitled";
-    _loadDocument();
-    _controller?.addListener(_autoSave);
-  }
-
-  void _loadDocument() {
-    final data = _box.get(widget.documentKey);
+    _docsBox = Hive.box('documents_box');
+    _currentTitle = widget.fileName;
     
-    if (data != null && data is Map) {
-      // Novi format: Map sa title i content
-      _currentTitle = data['title'] ?? _currentTitle;
+    final doc = _docsBox.get(widget.documentKey);
+    if (doc != null && doc['content'] != null) {
       try {
-        final doc = ParchmentDocument.fromJson(jsonDecode(data['content']));
-        _controller = FleatherController(document: doc);
+        final json = jsonDecode(doc['content']);
+        _controller = QuillController(
+          document: Document.fromJson(json),
+          selection: const TextSelection.collapsed(offset: 0),
+        );
       } catch (e) {
-        _controller = FleatherController();
-      }
-    } else if (data is String) {
-      // Stari format: Samo Delta string
-      try {
-        final doc = ParchmentDocument.fromJson(jsonDecode(data));
-        _controller = FleatherController(document: doc);
-      } catch (e) {
-        _controller = FleatherController();
+        _controller = QuillController.basic();
       }
     } else {
-      // Nova beleška
-      _controller = FleatherController();
+      _controller = QuillController.basic();
     }
   }
 
-  void _autoSave() {
-    if (_controller == null) return;
-    
-    final content = jsonEncode(_controller!.document.toDelta());
-    // Čuvamo kao Map da bi HomeScreen mogao da izvuče naslov i vreme
-    _box.put(widget.documentKey, {
+  void _saveDocument() {
+    final content = jsonEncode(_controller.document.toDelta().toJson());
+    _docsBox.put(widget.documentKey, {
       'title': _currentTitle,
       'content': content,
       'last_modified': DateTime.now().toIso8601String(),
     });
   }
 
-  Future<void> _renameNote() async {
-    final controller = TextEditingController(text: _currentTitle);
-    return showDialog(
+  String _getPlainText() {
+    return _controller.document.toPlainText().trim();
+  }
+
+  // --- AKCIJE IZ MENIJA ---
+
+  Future<void> _handleDownload() async {
+    try {
+      final text = _getPlainText();
+      if (text.isEmpty) {
+        _showSnackBar("Note is empty. ");
+        return;
+      }
+
+      // Pronalaženje putanje (Download folder na Androidu)
+      Directory? directory;
+      if (Platform.isAndroid) {
+        directory = Directory('/storage/emulated/0/Download');
+        if (!await directory.exists()) {
+          directory = await getExternalStorageDirectory();
+        }
+      } else {
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      final filePath = '${directory!.path}/$_currentTitle.txt';
+      final file = File(filePath);
+      await file.writeAsString(text);
+
+      _showSnackBar("Saved to: $filePath");
+    } catch (e) {
+      _showSnackBar("Error while trying to sa: $e");
+    }
+  }
+
+  void _handleRename() {
+    final editController = TextEditingController(text: _currentTitle);
+    showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Rename Note'),
-        content: TextField(
-          controller: controller, 
-          autofocus: true,
-          decoration: const InputDecoration(hintText: "Enter note name..."),
-        ),
+        title: const Text('Preimenuj belešku'),
+        content: TextField(controller: editController, autofocus: true),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Otkaži')),
           ElevatedButton(
             onPressed: () {
               setState(() {
-                _currentTitle = controller.text.trim().isEmpty 
-                    ? (widget.settings?.defaultName ?? "New note") 
-                    : controller.text.trim();
+                _currentTitle = editController.text;
               });
-              _autoSave();
+              _saveDocument();
               Navigator.pop(context);
             },
-            child: const Text('Save'),
+            child: const Text('Sačuvaj'),
           ),
         ],
       ),
     );
   }
 
-  void _showMenu() {
+  void _handleDelete() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Obriši belešku?'),
+        content: const Text('Ova radnja se ne može poništiti.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Otkaži')),
+          TextButton(
+            onPressed: () {
+              _docsBox.delete(widget.documentKey);
+              Navigator.pop(context); // Zatvori dijalog
+              Navigator.pop(context); // Vrati se na početni ekran
+            },
+            child: const Text('Obriši', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleShare() {
+    final text = "$_currentTitle\n\n${_getPlainText()}";
+    Share.share(text);
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  // --- MODAL MENU (Kao na tvojoj slici) ---
+
+  void _showOptionsBottomSheet() {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (context) => SafeArea(
-        child: Wrap(
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(_currentTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  _currentTitle,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
             ),
-            const Divider(height: 1),
+            const Divider(),
             ListTile(
-              leading: const Icon(Icons.share_outlined),
+              leading: const Icon(Icons.share_rounded),
               title: const Text('Share'),
               onTap: () {
                 Navigator.pop(context);
-                Share.share(_controller!.document.toPlainText(), subject: _currentTitle);
+                _handleShare();
               },
             ),
             ListTile(
-              leading: const Icon(Icons.edit_outlined),
+              leading: const Icon(Icons.edit_rounded),
               title: const Text('Rename'),
               onTap: () {
                 Navigator.pop(context);
-                _renameNote();
+                _handleRename();
               },
             ),
             ListTile(
-              leading: const Icon(Icons.file_download_outlined),
-              title: const Text('Download (Coming Soon)'),
-              onTap: () => Navigator.pop(context),
+              leading: const Icon(Icons.download_rounded),
+              title: const Text('Download (TXT)'),
+              onTap: () {
+                Navigator.pop(context);
+                _handleDownload();
+              },
             ),
             ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.red),
               title: const Text('Delete', style: TextStyle(color: Colors.red)),
               onTap: () {
-                _box.delete(widget.documentKey);
-                Navigator.pop(context); // Zatvori menu
-                Navigator.pop(context); // Vrati se na Home
+                Navigator.pop(context);
+                _handleDelete();
               },
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -158,70 +214,41 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_controller == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    final bool isKeyboardVisible = bottomInset > 0;
-    final safeBottomPadding = MediaQuery.of(context).padding.bottom;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
-        title: GestureDetector(
-          onTap: _renameNote,
-          child: Text(_currentTitle, style: const TextStyle(fontWeight: FontWeight.w300)),
-        ),
+        title: Text(_currentTitle, style: const TextStyle(fontWeight: FontWeight.w400)),
         actions: [
           IconButton(
+            icon: Icon(_isEditing ? Icons.check : Icons.edit_outlined),
+            onPressed: () {
+              setState(() => _isEditing = !_isEditing);
+              if (!_isEditing) _saveDocument();
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.more_vert),
-            onPressed: _showMenu,
-          )
+            onPressed: _showOptionsBottomSheet,
+          ),
         ],
       ),
-      body: Stack(
+      body: Column(
         children: [
-          // Editor površina
-          Positioned.fill(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: GestureDetector(
-                onTap: () => _focusNode.requestFocus(),
-                child: FleatherEditor(
-                  controller: _controller!,
-                  focusNode: _focusNode,
-                  readOnly: false,
-                  padding: EdgeInsets.only(
-                    top: 16, 
-                    bottom: isKeyboardVisible ? bottomInset + 80 : 100,
-                  ),
-                ),
-              ),
+          if (_isEditing)
+            QuillSimpleToolbar(
+              controller: _controller,
+              configurations: const QuillSimpleToolbarConfigurations(),
             ),
-          ),
-
-          // VRACENA PILULA (Toolbar)
-          Positioned(
-            bottom: isKeyboardVisible 
-                ? bottomInset + 16 
-                : safeBottomPadding + 16,
-            left: 16,
-            right: 16,
-            child: Material(
-              elevation: 6,
-              shadowColor: Colors.black26,
-              borderRadius: BorderRadius.circular(30),
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              clipBehavior: Clip.antiAlias,
-              child: Container(
-                height: 56,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Center(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: FleatherToolbar.basic(
-                      controller: _controller!,
-                    ),
-                  ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: QuillEditor.basic(
+                controller: _controller,
+                configurations: QuillEditorConfigurations(
+                  readOnly: !_isEditing,
+                  placeholder: 'Write some sentences...',
                 ),
               ),
             ),
@@ -229,13 +256,5 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
         ],
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _controller?.removeListener(_autoSave);
-    _controller?.dispose();
-    _focusNode.dispose();
-    super.dispose();
   }
 }
