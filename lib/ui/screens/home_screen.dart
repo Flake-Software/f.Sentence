@@ -307,7 +307,7 @@ class _HomeScreenState extends State<HomeScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.edit_note_rounded, size: 80, color: Theme.of(context).colorScheme.primary.withOpacity(0.2)),
-          const Text('Your thoughts start here', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w300)),
+          const Text('Ready to create?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w300)),
         ],
       ),
     );
