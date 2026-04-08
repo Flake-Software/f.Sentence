@@ -145,10 +145,10 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
           length, 
           BlockEmbed(type, data: {'source': localFile.path})
         );
-        _showSnackBar("Dodato: $type");
+        _showSnackBar("Added: $type");
       }
     } catch (e) {
-      _showSnackBar("Greška: $e");
+      _showSnackBar("Error: $e");
     }
   }
 
@@ -161,12 +161,12 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("Dodaj Multimediju", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const Text("Add multimedia", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _mediaOption(Icons.image_rounded, "Slika", () => _pickMedia('image')),
+                _mediaOption(Icons.image_rounded, "Image", () => _pickMedia('image')),
                 _mediaOption(Icons.videocam_rounded, "Video", () => _pickMedia('video')),
                 _mediaOption(Icons.audiotrack_rounded, "Audio", () => _pickMedia('audio')),
               ],
@@ -201,9 +201,9 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
       
       final filePath = '${directory.path}/$_currentTitle.txt';
       await File(filePath).writeAsString(text);
-      _showSnackBar("Sačuvano u Downloads");
+      _showSnackBar("Saved to Downloads");
     } catch (e) {
-      _showSnackBar("Greška: $e");
+      _showSnackBar("Error: $e");
     }
   }
 
@@ -216,10 +216,10 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Preimenuj'),
+        title: const Text('Rename'),
         content: TextField(controller: controller, autofocus: true),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Otkaži')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(onPressed: () {
             setState(() => _currentTitle = controller.text.trim());
             _autoSave();
