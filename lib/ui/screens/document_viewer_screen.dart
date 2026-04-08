@@ -76,11 +76,50 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     });
   }
 
-  // --- MULTIMEDIJA LOGIKA ---
+  // --- EMBED BUILDER (Ključno za prikaz slika/videa) ---
+  Widget _embedBuilder(BuildContext context, EmbedNode node) {
+    if (node.value.type == 'image') {
+      final String source = node.value.data['source'];
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Image.file(File(source), fit: BoxFit.cover),
+        ),
+      );
+    } else if (node.value.type == 'video') {
+      return Container(
+        height: 200,
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.black12,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Center(child: Icon(Icons.play_circle_fill, size: 50)),
+      );
+    } else if (node.value.type == 'audio') {
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.audiotrack),
+            SizedBox(width: 12),
+            Text("Audio fajl ubačen"),
+          ],
+        ),
+      );
+    }
+    return defaultFleatherEmbedBuilder(context, node);
+  }
 
+  // --- MULTIMEDIJA LOGIKA ---
   Future<void> _pickMedia(String type) async {
     String? filePath;
-    
     try {
       if (type == 'image') {
         final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
@@ -93,19 +132,23 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
         filePath = result?.files.single.path;
       }
 
-      if (filePath != null) {
-        // Kopiramo fajl u lokalni direktorijum aplikacije da bi ostao trajan
+      if (filePath != null && _controller != null) {
         final appDir = await getApplicationDocumentsDirectory();
         final fileName = p.basename(filePath);
         final localFile = await File(filePath).copy('${appDir.path}/$fileName');
 
-        // Ubacujemo u editor kao Embed
         final index = _controller!.selection.baseOffset;
-        _controller!.replace(index, 0, BlockEmbed(type, data: {'source': localFile.path}));
+        final length = _controller!.selection.extentOffset - index;
+        
+        _controller!.document.replace(
+          index, 
+          length, 
+          BlockEmbed(type, data: {'source': localFile.path})
+        );
         _showSnackBar("Dodato: $type");
       }
     } catch (e) {
-      _showSnackBar("Greška pri dodavanju medija: $e");
+      _showSnackBar("Greška: $e");
     }
   }
 
@@ -118,15 +161,14 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("Dodaj Multimediju", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
+            const Text("Dodaj Multimediju", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _mediaOption(Icons.image_rounded, "Slika", () => _pickMedia('image')),
                 _mediaOption(Icons.videocam_rounded, "Video", () => _pickMedia('video')),
                 _mediaOption(Icons.audiotrack_rounded, "Audio", () => _pickMedia('audio')),
-                _mediaOption(Icons.gif_box_rounded, "GIF", () => _pickMedia('image')), // GIF se tretira kao slika
               ],
             ),
             const SizedBox(height: 20),
@@ -138,26 +180,18 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
 
   Widget _mediaOption(IconData icon, String label, VoidCallback onTap) {
     return InkWell(
-      onTap: () {
-        Navigator.pop(context);
-        onTap();
-      },
+      onTap: () { Navigator.pop(context); onTap(); },
       child: Column(
         children: [
-          CircleAvatar(
-            radius: 28,
-            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-            child: Icon(icon, color: Theme.of(context).colorScheme.onPrimaryContainer),
-          ),
-          const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontSize: 12)),
+          CircleAvatar(radius: 30, child: Icon(icon, size: 28)),
+          const SizedBox(height: 10),
+          Text(label),
         ],
       ),
     );
   }
 
-  // --- OSTALE AKCIJE ---
-
+  // --- AKCIJE ---
   Future<void> _downloadNote() async {
     try {
       final text = _controller!.document.toPlainText().trim();
@@ -186,55 +220,12 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
         content: TextField(controller: controller, autofocus: true),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Otkaži')),
-          ElevatedButton(
-            onPressed: () {
-              setState(() => _currentTitle = controller.text.trim());
-              _autoSave();
-              Navigator.pop(context);
-            },
-            child: const Text('Sačuvaj'),
-          ),
+          ElevatedButton(onPressed: () {
+            setState(() => _currentTitle = controller.text.trim());
+            _autoSave();
+            Navigator.pop(context);
+          }, child: const Text('Sačuvaj')),
         ],
-      ),
-    );
-  }
-
-  void _showMenu() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.share_outlined),
-              title: const Text('Podeli'),
-              onTap: () {
-                Navigator.pop(context);
-                Share.share(_controller!.document.toPlainText(), subject: _currentTitle);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: const Text('Preimenuj'),
-              onTap: () { Navigator.pop(context); _renameNote(); },
-            ),
-            ListTile(
-              leading: const Icon(Icons.file_download_outlined),
-              title: const Text('Preuzmi (TXT)'),
-              onTap: () { Navigator.pop(context); _downloadNote(); },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline, color: Colors.red),
-              title: const Text('Obriši', style: TextStyle(color: Colors.red)),
-              onTap: () {
-                _box.delete(widget.documentKey);
-                Navigator.pop(context); Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -243,19 +234,28 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   Widget build(BuildContext context) {
     if (_controller == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
+    final theme = Theme.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final bool isKeyboardVisible = bottomInset > 0;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: GestureDetector(
-          onTap: _renameNote,
-          child: Text(_currentTitle, style: const TextStyle(fontWeight: FontWeight.w300)),
-        ),
+        title: GestureDetector(onTap: _renameNote, child: Text(_currentTitle)),
         actions: [
           IconButton(icon: const Icon(Icons.attachment_rounded), onPressed: _showMediaPicker),
-          IconButton(icon: const Icon(Icons.more_vert), onPressed: _showMenu),
+          IconButton(icon: const Icon(Icons.more_vert), onPressed: () {
+            showModalBottomSheet(
+              context: context,
+              builder: (context) => Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(leading: const Icon(Icons.share), title: const Text("Share"), onTap: () => Share.share(_controller!.document.toPlainText())),
+                  ListTile(leading: const Icon(Icons.file_download), title: const Text("Download"), onTap: _downloadNote),
+                ],
+              ),
+            );
+          }),
         ],
       ),
       body: Stack(
@@ -266,30 +266,26 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
               child: FleatherEditor(
                 controller: _controller!,
                 focusNode: _focusNode,
-                padding: EdgeInsets.only(top: 16, bottom: isKeyboardVisible ? bottomInset + 80 : 120),
+                embedBuilder: _embedBuilder, // DODATO: Ovo omogućava vidljivost slika
+                padding: EdgeInsets.only(top: 16, bottom: isKeyboardVisible ? bottomInset + 100 : 140),
               ),
             ),
           ),
-
-          // TOOLBAR + MEDIA DUGME
           Positioned(
             bottom: isKeyboardVisible ? bottomInset + 16 : 32,
             left: 16,
             right: 16,
             child: Material(
-              elevation: 6,
-              borderRadius: BorderRadius.circular(30),
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              elevation: 4,
+              borderRadius: BorderRadius.circular(32),
+              color: theme.colorScheme.surfaceContainerHighest,
               child: Container(
-                height: 56,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                height: 64,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Row(
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.add_circle_outline),
-                      onPressed: _showMediaPicker,
-                    ),
-                    const VerticalDivider(indent: 12, endIndent: 12),
+                    IconButton(icon: const Icon(Icons.add_circle_outline), onPressed: _showMediaPicker),
+                    const VerticalDivider(indent: 16, endIndent: 16, width: 20),
                     Expanded(
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
