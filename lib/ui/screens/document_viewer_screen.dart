@@ -73,12 +73,11 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     });
   }
 
-  // --- NOVA DOWNLOAD FUNKCIJA ---
   Future<void> _downloadNote() async {
     try {
       final text = _controller!.document.toPlainText().trim();
       if (text.isEmpty) {
-        _showSnackBar("Beleška je prazna.");
+        _showSnackBar("Note is empty");
         return;
       }
 
@@ -96,9 +95,9 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
       final file = File(filePath);
       await file.writeAsString(text);
 
-      _showSnackBar("Sačuvano: $_currentTitle.txt u Download folder.");
+      _showSnackBar("Saved $_currentTitle.txt to Downloads. ");
     } catch (e) {
-      _showSnackBar("Greška pri čuvanju: $e");
+      _showSnackBar("Error while saving: $e");
     }
   }
 
