@@ -1,5 +1,5 @@
 name: Sentence
-description: "More than text editor." 
+description: "Creativity, yours." 
 publish_to: 'none'
 
 version: 0.8.7-beta
@@ -11,6 +11,9 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.6
+  path: ^1.9.0
+  image_picker: ^1.0.7
+  file_picker: ^8.0.0
   fleather: ^1.10.0
   parchment: ^1.10.0
   animations: ^2.0.11
