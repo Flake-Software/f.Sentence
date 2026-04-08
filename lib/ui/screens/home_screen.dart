@@ -23,8 +23,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late Box _docsBox;
   bool _isGridView = true;
-  
-  // Multi-select stanje
+
   final Set<dynamic> _selectedKeys = {};
   bool _isSelectionMode = false;
 
@@ -34,11 +33,10 @@ class _HomeScreenState extends State<HomeScreen> {
     _docsBox = Hive.box('documents_box');
   }
 
-  // --- LOGIKA ZA FAJLOVE ---
-
   String _getPlainText(dynamic content) {
     if (content == null) return '';
     try {
+      // Fleather/Parchment format je JSON lista Delta operacija
       if (content is String && content.startsWith('[')) {
         final List<dynamic> json = jsonDecode(content);
         return json.map((node) => node['insert']?.toString() ?? '').join('').trim();
@@ -60,8 +58,6 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
   }
-
-  // --- AKCIJE IZ MENIJA ---
 
   Future<void> _handleDelete(dynamic key) async {
     final confirm = await showDialog<bool>(
@@ -97,8 +93,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ElevatedButton(
             onPressed: () {
               final doc = _docsBox.get(key);
-              doc['title'] = controller.text;
-              _docsBox.put(key, doc);
+              if (doc is Map) {
+                final newDoc = Map<String, dynamic>.from(doc);
+                newDoc['title'] = controller.text.trim();
+                _docsBox.put(key, newDoc);
+              } else {
+                _docsBox.put(key, {'title': controller.text.trim(), 'content': doc});
+              }
               Navigator.pop(context);
               setState(() {});
             },
@@ -110,24 +111,45 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _handleShare(dynamic doc) async {
-    final text = "${doc['title']}\n\n${_getPlainText(doc['content'])}";
-    await Share.share(text);
+    final String title = doc['title'] ?? 'Untitled';
+    final text = "$title\n\n${_getPlainText(doc['content'])}";
+    await Share.share(text, subject: title);
   }
 
   Future<void> _handleDownload(dynamic doc) async {
     try {
       final text = _getPlainText(doc['content']);
-      final directory = await getExternalStorageDirectory();
-      final file = File('${directory!.path}/${doc['title']}.txt');
+      if (text.isEmpty) {
+        _showSnackBar('Note is empty');
+        return;
+      }
+
+      Directory? directory;
+      if (Platform.isAndroid) {
+        // Primarno ciljamo javni Download folder na Androidu
+        directory = Directory('/storage/emulated/0/Download');
+        if (!await directory.exists()) {
+          directory = await getExternalStorageDirectory();
+        }
+      } else {
+        // iOS i ostali koriste Documents folder
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      final String title = doc['title'] ?? 'Untitled';
+      final file = File('${directory!.path}/$title.txt');
       await file.writeAsString(text);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Saved to ${file.path}')),
-      );
+
+      _showSnackBar('Saved: $title.txt to Downloads');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to save file')),
-      );
+      _showSnackBar('Failed to save file: $e');
     }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   void _deleteSelected() async {
@@ -140,15 +162,19 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // --- UI WIDGETI ---
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         leading: _isSelectionMode 
-          ? IconButton(icon: const Icon(Icons.close), onPressed: () => setState(() { _isSelectionMode = false; _selectedKeys.clear(); }))
+          ? IconButton(
+              icon: const Icon(Icons.close), 
+              onPressed: () => setState(() { 
+                _isSelectionMode = false; 
+                _selectedKeys.clear(); 
+              })
+            )
           : null,
         title: Text(
           _isSelectionMode ? '${_selectedKeys.length} selected' : 'f.Sentence',
@@ -202,9 +228,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildNoteCard(dynamic key, dynamic doc, bool isGrid) {
     final isSelected = _selectedKeys.contains(key);
-    final String title = doc['title'] ?? 'Untitled';
-    final String preview = _getPlainText(doc['content']);
-    final String date = doc['last_modified'] != null 
+    final String title = doc is Map ? (doc['title'] ?? 'Untitled') : 'Untitled';
+    final String preview = _getPlainText(doc is Map ? doc['content'] : doc);
+    final String date = (doc is Map && doc['last_modified'] != null) 
         ? DateFormat('MMM d').format(DateTime.parse(doc['last_modified'])) 
         : '';
 
@@ -212,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> {
       elevation: 0,
       margin: isGrid ? EdgeInsets.zero : const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         side: BorderSide(
           color: isSelected 
             ? Theme.of(context).colorScheme.primary 
@@ -224,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
           : Theme.of(context).colorScheme.surface,
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         onLongPress: () => _toggleSelection(key),
         onTap: () => _isSelectionMode ? _toggleSelection(key) : _openNote(key, title),
         child: Padding(
@@ -239,7 +265,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
                   ),
                   if (!_isSelectionMode) _buildPopupMenu(key, doc),
-                  if (_isSelectionMode) Icon(isSelected ? Icons.check_circle : Icons.radio_button_unchecked, color: Theme.of(context).colorScheme.primary, size: 20),
+                  if (_isSelectionMode) Icon(isSelected ? Icons.check_circle : Icons.radio_button_unchecked, color: Theme.of(context).colorScheme.primary, size: 22),
                 ],
               ),
               const SizedBox(height: 8),
@@ -259,7 +285,7 @@ class _HomeScreenState extends State<HomeScreen> {
       icon: const Icon(Icons.more_vert, size: 20),
       onSelected: (val) {
         if (val == 'delete') _handleDelete(key);
-        if (val == 'rename') _handleRename(key, doc['title']);
+        if (val == 'rename') _handleRename(key, doc['title'] ?? 'Untitled');
         if (val == 'share') _handleShare(doc);
         if (val == 'download') _handleDownload(doc);
       },
@@ -272,8 +298,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ],
     );
   }
-
-  // --- OSTALE POMOĆNE FUNKCIJE ---
 
   Future<void> _showNewNoteDialog() async {
     final controller = TextEditingController();
@@ -307,7 +331,7 @@ class _HomeScreenState extends State<HomeScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.edit_note_rounded, size: 80, color: Theme.of(context).colorScheme.primary.withOpacity(0.2)),
-          const Text('Ready to create?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w300)),
+          const Text('Your thoughts start here', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w300)),
         ],
       ),
     );
