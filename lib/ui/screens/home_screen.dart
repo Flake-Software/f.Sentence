@@ -23,8 +23,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late Box _docsBox;
   bool _isGridView = true;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Multi-select stanje
+  // Multi-select state
   final Set<dynamic> _selectedKeys = {};
   bool _isSelectionMode = false;
 
@@ -34,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _docsBox = Hive.box('documents_box');
   }
 
-  // --- LOGIKA ZA EKSTRAKCIJU TEKSTA ---
+  // --- TEXT EXTRACTION LOGIC ---
   String _getPlainText(dynamic content) {
     if (content == null) return '';
     try {
@@ -48,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return content.toString();
   }
 
-  // --- BULK AKCIJE ---
+  // --- BULK ACTIONS ---
   Future<void> _bulkDelete() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -116,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // --- POMOĆNE FUNKCIJE ---
+  // --- HELPER FUNCTIONS ---
   void _toggleSelection(dynamic key) {
     HapticFeedback.selectionClick();
     setState(() {
@@ -147,13 +148,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- UI WIDGETI ---
+  // --- UI WIDGETS ---
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: theme.colorScheme.surface,
+      drawer: _buildDrawer(),
       body: CustomScrollView(
         slivers: [
           SliverAppBar.large(
@@ -161,7 +164,10 @@ class _HomeScreenState extends State<HomeScreen> {
             backgroundColor: theme.colorScheme.surface,
             leading: _isSelectionMode 
                 ? IconButton(icon: const Icon(Icons.close), onPressed: _exitSelectionMode)
-                : null,
+                : IconButton(
+                    icon: const Icon(Icons.menu_rounded), 
+                    onPressed: () => _scaffoldKey.currentState?.openDrawer()
+                  ),
             title: AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
               child: Text(
@@ -185,13 +191,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     IconButton(
                       icon: Icon(_isGridView ? Icons.view_agenda_outlined : Icons.grid_view_outlined),
                       onPressed: () => setState(() => _isGridView = !_isGridView),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.settings_outlined),
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => SettingsScreen(settings: widget.settings)),
-                      ),
                     ),
                     const SizedBox(width: 8),
                   ],
@@ -235,6 +234,55 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildDrawer() {
+    final theme = Theme.of(context);
+    return NavigationDrawer(
+      backgroundColor: theme.colorScheme.surfaceContainerLow,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(28, 32, 16, 10),
+          child: Text(
+            'f.Sentence',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w400,
+              letterSpacing: -0.5,
+            ),
+          ),
+        ),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(28, 16, 28, 10),
+          child: Divider(),
+        ),
+        NavigationDrawerDestination(
+          icon: const Icon(Icons.notes_rounded),
+          label: const Text('All Notes'),
+        ),
+        const Spacer(), // Pushes the next items to the bottom
+        const Divider(),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: NavigationDrawerDestination(
+            icon: const Icon(Icons.settings_outlined),
+            label: const Text('Settings'),
+          ),
+        ),
+        ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 28),
+          leading: const Icon(Icons.settings_outlined),
+          title: const Text('Settings'),
+          onTap: () {
+            Navigator.pop(context); // Close drawer
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => SettingsScreen(settings: widget.settings)),
+            );
+          },
+        ),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
   Widget _buildNoteCard(dynamic key, dynamic doc, bool isGrid) {
     final isSelected = _selectedKeys.contains(key);
     final theme = Theme.of(context);
@@ -251,7 +299,7 @@ class _HomeScreenState extends State<HomeScreen> {
         elevation: 0,
         margin: isGrid ? EdgeInsets.zero : const EdgeInsets.only(bottom: 12),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(32), // Ekstremno zaobljeno za Android 16
+          borderRadius: BorderRadius.circular(32),
           side: BorderSide(
             color: isSelected 
               ? theme.colorScheme.primary 
@@ -343,7 +391,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- Ostatak funkcija (Rename, Delete, NewNote, OpenNote) ostaje isti kao u prethodnom kodu ---
   Future<void> _handleSingleDelete(dynamic key) async {
     final confirm = await showDialog<bool>(
       context: context,
