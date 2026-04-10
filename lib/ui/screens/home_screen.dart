@@ -117,7 +117,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // --- HELPER FUNCTIONS ---
   void _toggleSelection(dynamic key) {
     HapticFeedback.selectionClick();
     setState(() {
@@ -148,7 +147,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- UI WIDGETS ---
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -238,45 +236,52 @@ class _HomeScreenState extends State<HomeScreen> {
     final theme = Theme.of(context);
     return NavigationDrawer(
       backgroundColor: theme.colorScheme.surfaceContainerLow,
+      onDestinationSelected: (index) {
+        // Handle placeholder logic
+        if (index == 0) { // Archive
+          _showSnackBar("Archive folder is empty");
+        } else if (index == 1) { // Trash
+          _showSnackBar("Trash is empty");
+        } else if (index == 2) { // Settings
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => SettingsScreen(settings: widget.settings)),
+          );
+        }
+      },
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(28, 32, 16, 10),
+          padding: const EdgeInsets.fromLTRB(28, 48, 16, 10),
           child: Text(
             'f.Sentence',
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w400,
               letterSpacing: -0.5,
+              color: theme.colorScheme.primary,
             ),
           ),
         ),
+        const SizedBox(height: 16),
+        const NavigationDrawerDestination(
+          icon: Icon(Icons.archive_outlined),
+          selectedIcon: Icon(Icons.archive),
+          label: Text('Archive'),
+        ),
+        const NavigationDrawerDestination(
+          icon: Icon(Icons.delete_outline_rounded),
+          selectedIcon: Icon(Icons.delete_rounded),
+          label: Text('Trash'),
+        ),
         const Padding(
-          padding: EdgeInsets.fromLTRB(28, 16, 28, 10),
+          padding: EdgeInsets.fromLTRB(28, 16, 28, 16),
           child: Divider(),
         ),
-        NavigationDrawerDestination(
-          icon: const Icon(Icons.notes_rounded),
-          label: const Text('All Notes'),
-        ),
-        const Spacer(), // Pushes the next items to the bottom
-        const Divider(),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: NavigationDrawerDestination(
-            icon: const Icon(Icons.settings_outlined),
-            label: const Text('Settings'),
-          ),
-        ),
-        ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 28),
-          leading: const Icon(Icons.settings_outlined),
-          title: const Text('Settings'),
-          onTap: () {
-            Navigator.pop(context); // Close drawer
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => SettingsScreen(settings: widget.settings)),
-            );
-          },
+        // Push settings to bottom
+        const NavigationDrawerDestination(
+          icon: Icon(Icons.settings_outlined),
+          selectedIcon: Icon(Icons.settings),
+          label: Text('Settings'),
         ),
         const SizedBox(height: 20),
       ],
