@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
+import 'package:open_filex/open_filex.dart'; // Recommended for simple in-app opening
 import '../../core/app_settings.dart';
 
 class DocumentViewerScreen extends StatefulWidget {
@@ -69,57 +70,102 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     });
   }
 
+  // --- PLAYBACK LOGIC ---
+  void _openFile(String path) async {
+    final file = File(path);
+    if (await file.exists()) {
+      await OpenFilex.open(path);
+    } else {
+      _showSnackBar("File no longer exists locally.");
+    }
+  }
+
   // --- IMPROVED EMBED BUILDER ---
   Widget _embedBuilder(BuildContext context, EmbedNode node) {
-    if (node.value.type == 'image') {
-      final String source = node.value.data['source'];
+    final String type = node.value.type;
+    final String source = node.value.data['source'];
+
+    if (type == 'image') {
       return Container(
         alignment: Alignment.centerLeft,
         margin: const EdgeInsets.symmetric(vertical: 12),
         child: Stack(
           alignment: Alignment.topRight,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.file(
-                File(source),
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 50),
+            GestureDetector(
+              onTap: () => _openFile(source),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.file(
+                  File(source),
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => _buildErrorPlaceholder("Image not found"),
+                ),
               ),
             ),
             _buildRemoveButton(node),
           ],
         ),
       );
-    } else if (node.value.type == 'video' || node.value.type == 'audio') {
-      final isVideo = node.value.type == 'video';
+    } else if (type == 'video' || type == 'audio') {
+      final isVideo = type == 'video';
       return Container(
         margin: const EdgeInsets.symmetric(vertical: 8),
-        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.secondaryContainer,
-          borderRadius: BorderRadius.circular(16),
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
-        child: Row(
-          children: [
-            Icon(isVideo ? Icons.movie_creation_outlined : Icons.audiotrack_outlined),
-            const SizedBox(width: 12),
-            Expanded(child: Text(isVideo ? "Video Clip" : "Audio Track")),
-            _buildRemoveButton(node),
-          ],
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          leading: CircleAvatar(
+            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+            child: Icon(isVideo ? Icons.play_arrow_rounded : Icons.music_note_rounded),
+          ),
+          title: Text(isVideo ? "Video Clip" : "Audio Recording", 
+            style: const TextStyle(fontWeight: FontWeight.w500)),
+          subtitle: const Text("Tap to play"),
+          onTap: () => _openFile(source),
+          trailing: _buildRemoveButton(node, inline: true),
         ),
       );
     }
     return defaultFleatherEmbedBuilder(context, node);
   }
 
-  Widget _buildRemoveButton(EmbedNode node) {
-    return IconButton.filledTonal(
-      icon: const Icon(Icons.close, size: 18),
+  Widget _buildRemoveButton(EmbedNode node, {bool inline = false}) {
+    final button = IconButton(
+      icon: Icon(Icons.cancel, 
+        size: inline ? 24 : 28, 
+        color: inline ? Theme.of(context).colorScheme.error : Colors.white70
+      ),
       onPressed: () {
+        // Fix for removal: ensure we get the correct index relative to the document
         final offset = node.offset;
-        _controller!.replaceText(offset, 1, '');
+        _controller!.replaceText(offset, 1, '', 
+          selection: TextSelection.collapsed(offset: offset));
       },
+    );
+
+    return inline ? button : Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: button,
+    );
+  }
+
+  Widget _buildErrorPlaceholder(String message) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.broken_image, color: Colors.grey),
+          Text(message, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+        ],
+      ),
     );
   }
 
@@ -140,16 +186,12 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
 
       if (filePath != null && _controller != null) {
         final appDir = await getApplicationDocumentsDirectory();
-        final fileName = p.basename(filePath);
+        final fileName = "${DateTime.now().millisecondsSinceEpoch}_${p.basename(filePath)}";
         final localFile = await File(filePath).copy('${appDir.path}/$fileName');
 
-        // Get current selection
         int index = _controller!.selection.baseOffset;
-        
-        // Ensure index is within bounds
         if (index < 0) index = _controller!.document.length - 1;
 
-        // CRITICAL: We use replaceText on the controller to ensure internal state updates
         _controller!.replaceText(
           index, 
           0, 
@@ -160,31 +202,31 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
         _showSnackBar("Inserted $type");
       }
     } catch (e) {
-      _showSnackBar("Failed to insert media: $e");
+      _showSnackBar("Media error: $e");
     }
   }
 
   void _showMediaPicker() {
     showModalBottomSheet(
       context: context,
+      showDragHandle: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
       builder: (context) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("Add Media", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text("Attach Content", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _mediaOption(Icons.image_rounded, "Image", () => _pickMedia('image')),
-                  _mediaOption(Icons.videocam_rounded, "Video", () => _pickMedia('video')),
-                  _mediaOption(Icons.audiotrack_rounded, "Audio", () => _pickMedia('audio')),
+                  _mediaOption(Icons.image_outlined, "Image", () => _pickMedia('image')),
+                  _mediaOption(Icons.videocam_outlined, "Video", () => _pickMedia('video')),
+                  _mediaOption(Icons.audiotrack_outlined, "Audio", () => _pickMedia('audio')),
                 ],
               ),
-              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -195,18 +237,25 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   Widget _mediaOption(IconData icon, String label, VoidCallback onTap) {
     return InkWell(
       onTap: () { Navigator.pop(context); onTap(); },
-      borderRadius: BorderRadius.circular(16),
-      child: Column(
-        children: [
-          CircleAvatar(radius: 30, child: Icon(icon, size: 28)),
-          const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-        ],
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            CircleAvatar(
+              radius: 32, 
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.4),
+              child: Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary)
+            ),
+            const SizedBox(height: 10),
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+          ],
+        ),
       ),
     );
   }
 
-  // --- ACTIONS ---
+  // --- OTHER ACTIONS ---
   Future<void> _downloadNote() async {
     try {
       final text = _controller!.document.toPlainText().trim();
@@ -216,15 +265,15 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
 
       final filePath = '${directory.path}/$_currentTitle.txt';
       await File(filePath).writeAsString(text);
-      _showSnackBar("Saved to Downloads");
+      _showSnackBar("Exported to Downloads");
     } catch (e) {
-      _showSnackBar("Error: $e");
+      _showSnackBar("Export failed: $e");
     }
   }
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating)
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating, margin: const EdgeInsets.all(16))
     );
   }
 
@@ -234,7 +283,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Rename Note'),
-        content: TextField(controller: controller, autofocus: true),
+        content: TextField(controller: controller, autofocus: true, decoration: const InputDecoration(border: OutlineInputBorder())),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(onPressed: () {
@@ -260,7 +309,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
       appBar: AppBar(
         title: GestureDetector(onTap: _renameNote, child: Text(_currentTitle)),
         actions: [
-          IconButton(icon: const Icon(Icons.attachment_rounded), onPressed: _showMediaPicker),
+          IconButton(icon: const Icon(Icons.add_photo_alternate_outlined), onPressed: _showMediaPicker),
           IconButton(icon: const Icon(Icons.more_vert), onPressed: () {
             showModalBottomSheet(
               context: context,
@@ -270,15 +319,15 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                   children: [
                     ListTile(
                       leading: const Icon(Icons.share_outlined), 
-                      title: const Text("Share"), 
+                      title: const Text("Share as Text"), 
                       onTap: () {
                         Navigator.pop(context);
                         Share.share(_controller!.document.toPlainText());
                       }
                     ),
                     ListTile(
-                      leading: const Icon(Icons.file_download_outlined), 
-                      title: const Text("Download"), 
+                      leading: const Icon(Icons.download_for_offline_outlined), 
+                      title: const Text("Save to Storage"), 
                       onTap: () {
                         Navigator.pop(context);
                         _downloadNote();
@@ -302,41 +351,37 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                 embedBuilder: _embedBuilder,
                 padding: EdgeInsets.only(
                   top: 16, 
-                  bottom: isKeyboardVisible ? bottomInset + 100 : 140
+                  bottom: isKeyboardVisible ? bottomInset + 80 : 120
                 ),
               ),
             ),
           ),
           Positioned(
-            bottom: isKeyboardVisible ? bottomInset + 16 : 32,
-            left: 16,
-            right: 16,
-            child: Hero(
-              tag: 'toolbar',
-              child: Material(
-                elevation: 6,
-                shadowColor: Colors.black26,
-                borderRadius: BorderRadius.circular(32),
-                color: theme.colorScheme.surfaceContainerHighest,
-                child: Container(
-                  height: 64,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.add_circle_outline), 
-                        onPressed: _showMediaPicker,
-                        color: theme.colorScheme.primary,
+            bottom: isKeyboardVisible ? bottomInset + 12 : 24,
+            left: 12,
+            right: 12,
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(32),
+              color: theme.colorScheme.surfaceContainerHighest,
+              child: Container(
+                height: 64,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.attach_file_rounded), 
+                      onPressed: _showMediaPicker,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const VerticalDivider(width: 24, indent: 16, endIndent: 16),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: FleatherToolbar.basic(controller: _controller!),
                       ),
-                      const VerticalDivider(indent: 16, endIndent: 16, width: 20),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: FleatherToolbar.basic(controller: _controller!),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
