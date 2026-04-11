@@ -11,6 +11,8 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/app_settings.dart';
 import 'settings_screen.dart';
 import 'document_viewer_screen.dart';
+import 'archive_screen.dart';
+import 'trash_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final AppSettings settings;
@@ -55,14 +57,14 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-        title: Text('Delete ${_selectedKeys.length} notes?'),
-        content: const Text('This will permanently remove all selected notes.'),
+        title: Text('Move ${_selectedKeys.length} notes to trash?'),
+        content: const Text('You can restore them later from the Trash folder.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           FilledButton.tonal(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.errorContainer),
-            child: Text('Delete All', style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer)),
+            child: Text('Move to Trash', style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer)),
           ),
         ],
       ),
@@ -70,7 +72,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (confirm == true) {
       for (var key in _selectedKeys) {
-        await _docsBox.delete(key);
+        final doc = _docsBox.get(key);
+        if (doc is Map) {
+          final newDoc = Map<String, dynamic>.from(doc);
+          newDoc['is_deleted'] = true;
+          await _docsBox.put(key, newDoc);
+        }
       }
       _exitSelectionMode();
     }
@@ -196,8 +203,16 @@ class _HomeScreenState extends State<HomeScreen> {
           ValueListenableBuilder(
             valueListenable: _docsBox.listenable(),
             builder: (context, Box box, _) {
-              if (box.isEmpty) return SliverFillRemaining(child: _buildEmptyState());
-              final keys = box.keys.toList().reversed.toList();
+              // Filter out notes that are archived or deleted
+              final keys = box.keys.where((key) {
+                final doc = box.get(key);
+                if (doc is Map) {
+                  return doc['is_archived'] != true && doc['is_deleted'] != true;
+                }
+                return true;
+              }).toList().reversed.toList();
+
+              if (keys.isEmpty) return SliverFillRemaining(child: _buildEmptyState());
 
               return SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
@@ -237,17 +252,29 @@ class _HomeScreenState extends State<HomeScreen> {
     return NavigationDrawer(
       backgroundColor: theme.colorScheme.surfaceContainerLow,
       onDestinationSelected: (index) {
-        // Handle placeholder logic
-        if (index == 0) { // Archive
-          _showSnackBar("Archive folder is empty");
-        } else if (index == 1) { // Trash
-          _showSnackBar("Trash is empty");
-        } else if (index == 2) { // Settings
-          Navigator.pop(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => SettingsScreen(settings: widget.settings)),
-          );
+        Navigator.pop(context); // Close drawer first
+        
+        switch (index) {
+          case 0: // Home - Already here
+            break;
+          case 1: // Archive
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ArchiveScreen(settings: widget.settings)),
+            );
+            break;
+          case 2: // Trash
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => TrashScreen(settings: widget.settings)),
+            );
+            break;
+          case 3: // Settings
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => SettingsScreen(settings: widget.settings)),
+            );
+            break;
         }
       },
       children: [
@@ -264,8 +291,13 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 16),
         const NavigationDrawerDestination(
+          icon: Icon(Icons.home_outlined),
+          selectedIcon: Icon(Icons.home_rounded),
+          label: Text('Home'),
+        ),
+        const NavigationDrawerDestination(
           icon: Icon(Icons.archive_outlined),
-          selectedIcon: Icon(Icons.archive),
+          selectedIcon: Icon(Icons.archive_rounded),
           label: Text('Archive'),
         ),
         const NavigationDrawerDestination(
@@ -277,10 +309,9 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: EdgeInsets.fromLTRB(28, 16, 28, 16),
           child: Divider(),
         ),
-        // Push settings to bottom
         const NavigationDrawerDestination(
           icon: Icon(Icons.settings_outlined),
-          selectedIcon: Icon(Icons.settings),
+          selectedIcon: Icon(Icons.settings_rounded),
           label: Text('Settings'),
         ),
         const SizedBox(height: 20),
@@ -381,6 +412,7 @@ class _HomeScreenState extends State<HomeScreen> {
       icon: Icon(Icons.more_vert, size: 20, color: Theme.of(context).colorScheme.outline),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       onSelected: (val) {
+        if (val == 'archive') _handleSingleArchive(key);
         if (val == 'delete') _handleSingleDelete(key);
         if (val == 'rename') _handleRename(key, doc['title'] ?? 'Untitled');
         if (val == 'share') _handleSingleShare(doc);
@@ -390,25 +422,31 @@ class _HomeScreenState extends State<HomeScreen> {
         const PopupMenuItem(value: 'download', child: ListTile(leading: Icon(Icons.download_rounded), title: Text('Download'), contentPadding: EdgeInsets.zero)),
         const PopupMenuItem(value: 'rename', child: ListTile(leading: Icon(Icons.edit_rounded), title: Text('Rename'), contentPadding: EdgeInsets.zero)),
         const PopupMenuItem(value: 'share', child: ListTile(leading: Icon(Icons.share_rounded), title: Text('Share'), contentPadding: EdgeInsets.zero)),
+        const PopupMenuItem(value: 'archive', child: ListTile(leading: Icon(Icons.archive_outlined), title: Text('Archive'), contentPadding: EdgeInsets.zero)),
         const PopupMenuDivider(),
-        PopupMenuItem(value: 'delete', child: ListTile(leading: const Icon(Icons.delete_outline, color: Colors.red), title: const Text('Delete', style: TextStyle(color: Colors.red)), contentPadding: EdgeInsets.zero)),
+        PopupMenuItem(value: 'delete', child: ListTile(leading: const Icon(Icons.delete_outline, color: Colors.red), title: const Text('Move to Trash', style: TextStyle(color: Colors.red)), contentPadding: EdgeInsets.zero)),
       ],
     );
   }
 
+  Future<void> _handleSingleArchive(dynamic key) async {
+    final doc = _docsBox.get(key);
+    if (doc is Map) {
+      final newDoc = Map<String, dynamic>.from(doc);
+      newDoc['is_archived'] = true;
+      await _docsBox.put(key, newDoc);
+      _showSnackBar("Note archived");
+    }
+  }
+
   Future<void> _handleSingleDelete(dynamic key) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-        title: const Text('Delete Note?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
-        ],
-      ),
-    );
-    if (confirm == true) { await _docsBox.delete(key); setState(() {}); }
+    final doc = _docsBox.get(key);
+    if (doc is Map) {
+      final newDoc = Map<String, dynamic>.from(doc);
+      newDoc['is_deleted'] = true;
+      await _docsBox.put(key, newDoc);
+      _showSnackBar("Note moved to trash");
+    }
   }
 
   void _handleRename(dynamic key, String currentTitle) {
@@ -446,8 +484,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _handleSingleDownload(dynamic doc) async {
     _selectedKeys.clear();
-    _selectedKeys.add(_docsBox.keyAt(_docsBox.values.toList().indexOf(doc))); 
-    await _bulkDownload();
+    final index = _docsBox.values.toList().indexOf(doc);
+    if (index != -1) {
+      _selectedKeys.add(_docsBox.keyAt(index)); 
+      await _bulkDownload();
+    }
   }
 
   Future<void> _showNewNoteDialog() async {
