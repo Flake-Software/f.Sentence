@@ -77,13 +77,13 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
       if (await file.exists()) {
         final result = await OpenFilex.open(path);
         if (result.type != ResultType.done) {
-          _showSnackBar("Ne mogu otvoriti fajl: ${result.message}");
+          _showSnackBar("Couldn't remove file: ${result.message}");
         }
       } else {
-        _showSnackBar("Fajl više ne postoji na uređaju.");
+        _showSnackBar("File no longer exists on your device.");
       }
     } catch (e) {
-      _showSnackBar("Greška pri otvaranju: $e");
+      _showSnackBar("Error while openning: $e");
     }
   }
 
@@ -106,7 +106,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                 child: Image.file(
                   File(source),
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => _buildErrorPlaceholder("Slika nije pronađena"),
+                  errorBuilder: (_, __, ___) => _buildErrorPlaceholder("Image not found"),
                 ),
               ),
             ),
@@ -133,10 +133,10 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
             ),
           ),
           title: Text(
-            isVideo ? "Video snimak" : "Audio zapis",
+            isVideo ? "Video" : "Audio",
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
-          subtitle: const Text("Dodirnite za puštanje"),
+          subtitle: const Text("Touch to play"),
           onTap: () => _openFile(source),
           trailing: _buildRemoveButton(node, inline: true),
         ),
@@ -214,10 +214,10 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
           selection: TextSelection.collapsed(offset: index + 1),
         );
 
-        _showSnackBar("Dodato: $type");
+        _showSnackBar("Added: $type");
       }
     } catch (e) {
-      _showSnackBar("Greška: $e");
+      _showSnackBar("Error: $e");
     }
   }
 
@@ -232,7 +232,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("Dodaj prilog", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text("Insert attachment", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -284,15 +284,15 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Preimenuj belešku'),
+        title: const Text('Rename note'),
         content: TextField(controller: controller, autofocus: true),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Otkaži')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(onPressed: () {
             setState(() => _currentTitle = controller.text.trim());
             _autoSave();
             Navigator.pop(context);
-          }, child: const Text('Sačuvaj')),
+          }, child: const Text('Save')),
         ],
       ),
     );
@@ -321,7 +321,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                   children: [
                     ListTile(
                       leading: const Icon(Icons.share_outlined), 
-                      title: const Text("Podeli"), 
+                      title: const Text("Share"), 
                       onTap: () {
                         Navigator.pop(context);
                         Share.share(_controller!.document.toPlainText());
