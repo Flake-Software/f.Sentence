@@ -9,7 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
-import 'package:open_filex/open_filex.dart'; // Recommended for simple in-app opening
+import 'package:open_filex/open_filex.dart';
 import '../../core/app_settings.dart';
 
 class DocumentViewerScreen extends StatefulWidget {
@@ -70,17 +70,24 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     });
   }
 
-  // --- PLAYBACK LOGIC ---
-  void _openFile(String path) async {
-    final file = File(path);
-    if (await file.exists()) {
-      await OpenFilex.open(path);
-    } else {
-      _showSnackBar("File no longer exists locally.");
+  // --- REPRODUKCIJA ---
+  Future<void> _openFile(String path) async {
+    try {
+      final file = File(path);
+      if (await file.exists()) {
+        final result = await OpenFilex.open(path);
+        if (result.type != ResultType.done) {
+          _showSnackBar("Ne mogu otvoriti fajl: ${result.message}");
+        }
+      } else {
+        _showSnackBar("Fajl više ne postoji na uređaju.");
+      }
+    } catch (e) {
+      _showSnackBar("Greška pri otvaranju: $e");
     }
   }
 
-  // --- IMPROVED EMBED BUILDER ---
+  // --- EMBED BUILDER ---
   Widget _embedBuilder(BuildContext context, EmbedNode node) {
     final String type = node.value.type;
     final String source = node.value.data['source'];
@@ -88,18 +95,18 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     if (type == 'image') {
       return Container(
         alignment: Alignment.centerLeft,
-        margin: const EdgeInsets.symmetric(vertical: 12),
+        margin: const EdgeInsets.symmetric(vertical: 16),
         child: Stack(
           alignment: Alignment.topRight,
           children: [
             GestureDetector(
               onTap: () => _openFile(source),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(24),
                 child: Image.file(
                   File(source),
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => _buildErrorPlaceholder("Image not found"),
+                  errorBuilder: (_, __, ___) => _buildErrorPlaceholder("Slika nije pronađena"),
                 ),
               ),
             ),
@@ -110,21 +117,26 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     } else if (type == 'video' || type == 'audio') {
       final isVideo = type == 'video';
       return Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
+        margin: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5)),
         ),
         child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           leading: CircleAvatar(
             backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-            child: Icon(isVideo ? Icons.play_arrow_rounded : Icons.music_note_rounded),
+            child: Icon(
+              isVideo ? Icons.play_arrow_rounded : Icons.audiotrack_rounded,
+              color: Theme.of(context).colorScheme.onPrimaryContainer,
+            ),
           ),
-          title: Text(isVideo ? "Video Clip" : "Audio Recording", 
-            style: const TextStyle(fontWeight: FontWeight.w500)),
-          subtitle: const Text("Tap to play"),
+          title: Text(
+            isVideo ? "Video snimak" : "Audio zapis",
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          subtitle: const Text("Dodirnite za puštanje"),
           onTap: () => _openFile(source),
           trailing: _buildRemoveButton(node, inline: true),
         ),
@@ -134,42 +146,43 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   }
 
   Widget _buildRemoveButton(EmbedNode node, {bool inline = false}) {
-    final button = IconButton(
-      icon: Icon(Icons.cancel, 
-        size: inline ? 24 : 28, 
-        color: inline ? Theme.of(context).colorScheme.error : Colors.white70
+    return IconButton(
+      icon: Icon(
+        Icons.cancel,
+        size: inline ? 26 : 30,
+        color: inline 
+            ? Theme.of(context).colorScheme.error 
+            : Colors.black.withOpacity(0.5),
       ),
       onPressed: () {
-        // Fix for removal: ensure we get the correct index relative to the document
+        // Precizno brisanje na osnovu trenutnog offset-a čvora
         final offset = node.offset;
-        _controller!.replaceText(offset, 1, '', 
-          selection: TextSelection.collapsed(offset: offset));
+        final length = node.length;
+        _controller!.replaceText(offset, length, '',
+            selection: TextSelection.collapsed(offset: offset));
       },
-    );
-
-    return inline ? button : Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: button,
     );
   }
 
   Widget _buildErrorPlaceholder(String message) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(16),
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
         children: [
-          const Icon(Icons.broken_image, color: Colors.grey),
-          Text(message, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          const Icon(Icons.broken_image_outlined, size: 48, color: Colors.grey),
+          const SizedBox(height: 8),
+          Text(message, style: const TextStyle(color: Colors.grey)),
         ],
       ),
     );
   }
 
-  // --- MULTIMEDIA LOGIC ---
+  // --- MULTIMEDIJA ---
   Future<void> _pickMedia(String type) async {
     String? filePath;
     try {
@@ -186,12 +199,14 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
 
       if (filePath != null && _controller != null) {
         final appDir = await getApplicationDocumentsDirectory();
-        final fileName = "${DateTime.now().millisecondsSinceEpoch}_${p.basename(filePath)}";
+        final extension = p.extension(filePath);
+        final fileName = "file_${DateTime.now().millisecondsSinceEpoch}$extension";
         final localFile = await File(filePath).copy('${appDir.path}/$fileName');
 
         int index = _controller!.selection.baseOffset;
         if (index < 0) index = _controller!.document.length - 1;
 
+        // Ubacivanje embed objekta
         _controller!.replaceText(
           index, 
           0, 
@@ -199,10 +214,10 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
           selection: TextSelection.collapsed(offset: index + 1),
         );
 
-        _showSnackBar("Inserted $type");
+        _showSnackBar("Dodato: $type");
       }
     } catch (e) {
-      _showSnackBar("Media error: $e");
+      _showSnackBar("Greška: $e");
     }
   }
 
@@ -213,16 +228,16 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
       builder: (context) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("Attach Content", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text("Dodaj prilog", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _mediaOption(Icons.image_outlined, "Image", () => _pickMedia('image')),
+                  _mediaOption(Icons.image_outlined, "Slika", () => _pickMedia('image')),
                   _mediaOption(Icons.videocam_outlined, "Video", () => _pickMedia('video')),
                   _mediaOption(Icons.audiotrack_outlined, "Audio", () => _pickMedia('audio')),
                 ],
@@ -238,42 +253,29 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     return InkWell(
       onTap: () { Navigator.pop(context); onTap(); },
       borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            CircleAvatar(
-              radius: 32, 
-              backgroundColor: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.4),
-              child: Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary)
-            ),
-            const SizedBox(height: 10),
-            Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-          ],
-        ),
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 32, 
+            backgroundColor: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5),
+            child: Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary)
+          ),
+          const SizedBox(height: 10),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+        ],
       ),
     );
   }
 
-  // --- OTHER ACTIONS ---
-  Future<void> _downloadNote() async {
-    try {
-      final text = _controller!.document.toPlainText().trim();
-      Directory? directory = Platform.isAndroid 
-          ? Directory('/storage/emulated/0/Download') 
-          : await getApplicationDocumentsDirectory();
-
-      final filePath = '${directory.path}/$_currentTitle.txt';
-      await File(filePath).writeAsString(text);
-      _showSnackBar("Exported to Downloads");
-    } catch (e) {
-      _showSnackBar("Export failed: $e");
-    }
-  }
-
+  // --- AKCIJE ---
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating, margin: const EdgeInsets.all(16))
+      SnackBar(
+        content: Text(message), 
+        behavior: SnackBarBehavior.floating, 
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      )
     );
   }
 
@@ -282,15 +284,15 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Rename Note'),
-        content: TextField(controller: controller, autofocus: true, decoration: const InputDecoration(border: OutlineInputBorder())),
+        title: const Text('Preimenuj belešku'),
+        content: TextField(controller: controller, autofocus: true),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Otkaži')),
           ElevatedButton(onPressed: () {
             setState(() => _currentTitle = controller.text.trim());
             _autoSave();
             Navigator.pop(context);
-          }, child: const Text('Save')),
+          }, child: const Text('Sačuvaj')),
         ],
       ),
     );
@@ -319,18 +321,10 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                   children: [
                     ListTile(
                       leading: const Icon(Icons.share_outlined), 
-                      title: const Text("Share as Text"), 
+                      title: const Text("Podeli"), 
                       onTap: () {
                         Navigator.pop(context);
                         Share.share(_controller!.document.toPlainText());
-                      }
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.download_for_offline_outlined), 
-                      title: const Text("Save to Storage"), 
-                      onTap: () {
-                        Navigator.pop(context);
-                        _downloadNote();
                       }
                     ),
                   ],
@@ -370,7 +364,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.attach_file_rounded), 
+                      icon: const Icon(Icons.attachment_rounded), 
                       onPressed: _showMediaPicker,
                       color: theme.colorScheme.primary,
                     ),
