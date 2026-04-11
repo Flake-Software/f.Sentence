@@ -11,8 +11,8 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/app_settings.dart';
 import 'settings_screen.dart';
 import 'document_viewer_screen.dart';
-import 'archive_screen.dart';
-import 'trash_screen.dart';
+import 'archive.dart';
+import 'trash.dart';
 
 class HomeScreen extends StatefulWidget {
   final AppSettings settings;
