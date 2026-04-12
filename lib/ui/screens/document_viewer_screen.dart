@@ -70,20 +70,20 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     });
   }
 
-  // --- REPRODUKCIJA ---
+  // --- FILE OPENING ---
   Future<void> _openFile(String path) async {
     try {
       final file = File(path);
       if (await file.exists()) {
         final result = await OpenFilex.open(path);
         if (result.type != ResultType.done) {
-          _showSnackBar("Couldn't remove file: ${result.message}");
+          _showSnackBar("Could not open file: ${result.message}");
         }
       } else {
-        _showSnackBar("File no longer exists on your device.");
+        _showSnackBar("File no longer exists on this device.");
       }
     } catch (e) {
-      _showSnackBar("Error while openning: $e");
+      _showSnackBar("Error opening file: $e");
     }
   }
 
@@ -91,6 +91,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   Widget _embedBuilder(BuildContext context, EmbedNode node) {
     final String type = node.value.type;
     final String source = node.value.data['source'];
+    final String fileName = p.basename(source);
 
     if (type == 'image') {
       return Container(
@@ -106,7 +107,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                 child: Image.file(
                   File(source),
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => _buildErrorPlaceholder("Image not found"),
+                  errorBuilder: (_, __, ___) => _buildErrorPlaceholder("Image file missing"),
                 ),
               ),
             ),
@@ -133,10 +134,12 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
             ),
           ),
           title: Text(
-            isVideo ? "Video" : "Audio",
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            fileName,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          subtitle: const Text("Touch to play"),
+          subtitle: Text(isVideo ? "Video Attachment" : "Audio Attachment", style: const TextStyle(fontSize: 12)),
           onTap: () => _openFile(source),
           trailing: _buildRemoveButton(node, inline: true),
         ),
@@ -155,11 +158,13 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
             : Colors.black.withOpacity(0.5),
       ),
       onPressed: () {
-        // Precizno brisanje na osnovu trenutnog offset-a čvora
         final offset = node.offset;
         final length = node.length;
-        _controller!.replaceText(offset, length, '',
-            selection: TextSelection.collapsed(offset: offset));
+        setState(() {
+          _controller!.replaceText(offset, length, '',
+              selection: TextSelection.collapsed(offset: offset));
+        });
+        _showSnackBar("Attachment removed");
       },
     );
   }
@@ -182,7 +187,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     );
   }
 
-  // --- MULTIMEDIJA ---
+  // --- MEDIA PICKING ---
   Future<void> _pickMedia(String type) async {
     String? filePath;
     try {
@@ -200,13 +205,12 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
       if (filePath != null && _controller != null) {
         final appDir = await getApplicationDocumentsDirectory();
         final extension = p.extension(filePath);
-        final fileName = "file_${DateTime.now().millisecondsSinceEpoch}$extension";
+        final fileName = "${type}_${DateTime.now().millisecondsSinceEpoch}$extension";
         final localFile = await File(filePath).copy('${appDir.path}/$fileName');
 
         int index = _controller!.selection.baseOffset;
         if (index < 0) index = _controller!.document.length - 1;
 
-        // Ubacivanje embed objekta
         _controller!.replaceText(
           index, 
           0, 
@@ -214,10 +218,10 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
           selection: TextSelection.collapsed(offset: index + 1),
         );
 
-        _showSnackBar("Added: $type");
+        _showSnackBar("Added $type attachment");
       }
     } catch (e) {
-      _showSnackBar("Error: $e");
+      _showSnackBar("Error adding attachment: $e");
     }
   }
 
@@ -232,12 +236,12 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("Insert attachment", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text("Insert Attachment", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _mediaOption(Icons.image_outlined, "Slika", () => _pickMedia('image')),
+                  _mediaOption(Icons.image_outlined, "Image", () => _pickMedia('image')),
                   _mediaOption(Icons.videocam_outlined, "Video", () => _pickMedia('video')),
                   _mediaOption(Icons.audiotrack_outlined, "Audio", () => _pickMedia('audio')),
                 ],
@@ -267,7 +271,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     );
   }
 
-  // --- AKCIJE ---
+  // --- ACTIONS ---
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -284,8 +288,8 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Rename note'),
-        content: TextField(controller: controller, autofocus: true),
+        title: const Text('Rename Note'),
+        content: TextField(controller: controller, autofocus: true, decoration: const InputDecoration(labelText: "New title")),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(onPressed: () {
@@ -311,7 +315,11 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
       appBar: AppBar(
         title: GestureDetector(onTap: _renameNote, child: Text(_currentTitle)),
         actions: [
-          IconButton(icon: const Icon(Icons.add_photo_alternate_outlined), onPressed: _showMediaPicker),
+          IconButton(
+            icon: const Icon(Icons.add_photo_alternate_outlined), 
+            onPressed: _showMediaPicker,
+            tooltip: "Add Attachment",
+          ),
           IconButton(icon: const Icon(Icons.more_vert), onPressed: () {
             showModalBottomSheet(
               context: context,
@@ -321,10 +329,18 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                   children: [
                     ListTile(
                       leading: const Icon(Icons.share_outlined), 
-                      title: const Text("Share"), 
+                      title: const Text("Share Plain Text"), 
                       onTap: () {
                         Navigator.pop(context);
                         Share.share(_controller!.document.toPlainText());
+                      }
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.edit_outlined), 
+                      title: const Text("Rename Note"), 
+                      onTap: () {
+                        Navigator.pop(context);
+                        _renameNote();
                       }
                     ),
                   ],
@@ -367,6 +383,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                       icon: const Icon(Icons.attachment_rounded), 
                       onPressed: _showMediaPicker,
                       color: theme.colorScheme.primary,
+                      tooltip: "Attachments",
                     ),
                     const VerticalDivider(width: 24, indent: 16, endIndent: 16),
                     Expanded(
