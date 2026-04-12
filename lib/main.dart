@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 // Core settings i UI
@@ -9,12 +10,22 @@ void main() async {
   // Ensure Flutter is ready
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Postavljanje transparentnosti sistemskih traka za "Edge-to-Edge" izgled
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    systemNavigationBarColor: Colors.transparent,
+    statusBarColor: Colors.transparent,
+    systemNavigationBarDividerColor: Colors.transparent,
+  ));
+
+  // Opciono: Omogućavanje Edge-to-Edge moda na Androidu
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
   // Initialize Hive i otvori box-ove
   await Hive.initFlutter();
   await Hive.openBox('settings_box');
   await Hive.openBox('documents_box');
 
-  // Kreiramo AppSettings (sada bez argumenata, kako smo sredili u app_settings.dart)
+  // Kreiramo AppSettings
   final appSettings = AppSettings();
 
   runApp(MyApp(appSettings: appSettings));
@@ -22,23 +33,19 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   final AppSettings appSettings;
-  
+
   const MyApp({super.key, required this.appSettings});
 
   @override
   Widget build(BuildContext context) {
-    // ListenableBuilder sluša promene u AppSettings bez potrebe za 'provider' paketom
     return ListenableBuilder(
       listenable: appSettings,
       builder: (context, _) {
-        // AMOLED Logic: Proveravamo labelu teme
         final bool isAmoled = appSettings.themeLabel == 'AMOLED';
 
         return MaterialApp(
           title: 'f.Sentence',
           debugShowCheckedModeBanner: false,
-
-          // Dinamički mod (System, Light, Dark)
           themeMode: appSettings.themeMode,
 
           // Light Theme
@@ -47,6 +54,13 @@ class MyApp extends StatelessWidget {
             colorSchemeSeed: appSettings.accentColor,
             brightness: Brightness.light,
             fontFamily: 'Inter',
+            appBarTheme: const AppBarTheme(
+              systemOverlayStyle: SystemUiOverlayStyle(
+                statusBarIconBrightness: Brightness.dark,
+                statusBarBrightness: Brightness.light,
+                systemNavigationBarIconBrightness: Brightness.dark,
+              ),
+            ),
           ),
 
           // Dark / AMOLED Theme
@@ -57,11 +71,16 @@ class MyApp extends StatelessWidget {
 
             // AMOLED Specifičnosti
             scaffoldBackgroundColor: isAmoled ? Colors.black : null,
-            
+
             appBarTheme: AppBarTheme(
               backgroundColor: isAmoled ? Colors.black : null,
               elevation: 0,
               surfaceTintColor: Colors.transparent,
+              systemOverlayStyle: const SystemUiOverlayStyle(
+                statusBarIconBrightness: Brightness.light,
+                statusBarBrightness: Brightness.dark,
+                systemNavigationBarIconBrightness: Brightness.light,
+              ),
             ),
 
             cardTheme: CardThemeData(
@@ -76,7 +95,6 @@ class MyApp extends StatelessWidget {
             ),
           ),
 
-          // Startujemo sa HomeScreen i prosleđujemo instancu settings-a
           home: HomeScreen(settings: appSettings),
         );
       },
