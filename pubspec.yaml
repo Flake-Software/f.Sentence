@@ -2,7 +2,7 @@ name: Sentence
 description: "Creativity, yours." 
 publish_to: 'none'
 
-version: 0.8.7-beta
+version: 1.0.0-canary
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
