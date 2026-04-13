@@ -45,7 +45,7 @@ class AboutSettings extends StatelessWidget {
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  'Version 0.8.7-beta',
+                  'Version 1.0.0-canary',
                   style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
                 ),
               ],
