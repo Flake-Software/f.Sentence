@@ -1,20 +1,17 @@
 package com.flake.sentence
 
 import io.flutter.embedding.android.FlutterActivity
-import io.flutter.embedding.engine.FlutterEngine
-import android.os.Build
-import android.view.View
-import android.view.WindowInsets
+import android.os.Bundle
+import android.view.WindowManager
+import androidx.core.view.WindowCompat
 
 class MainActivity: FlutterActivity() {
-    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
-        super.configureFlutterEngine(flutterEngine)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         
-        // Forsiranje Edge-to-Edge na nivou sistema
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.setDecorFitsSystemWindows(false)
-            window.navigationBarColor = 0 // Transparentna
-            window.statusBarColor = 0 // Transparentna
-        }
+        super.onCreate(savedInstanceState)
+        
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
     }
 }
