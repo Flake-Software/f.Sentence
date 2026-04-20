@@ -13,6 +13,7 @@ import 'settings_screen.dart';
 import 'document_viewer_screen.dart';
 import 'archive.dart';
 import 'trash.dart';
+import 'search.dart'; // Added search screen import
 
 class HomeScreen extends StatefulWidget {
   final AppSettings settings;
@@ -194,6 +195,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   ]
                 : [
                     IconButton(
+                      icon: const Icon(Icons.search_rounded),
+                      onPressed: () {
+                        showSearch(
+                          context: context,
+                          delegate: NoteSearchDelegate(box: _docsBox, settings: widget.settings),
+                        );
+                      },
+                    ),
+                    IconButton(
                       icon: Icon(_isGridView ? Icons.view_agenda_outlined : Icons.grid_view_outlined),
                       onPressed: () => setState(() => _isGridView = !_isGridView),
                     ),
@@ -203,7 +213,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ValueListenableBuilder(
             valueListenable: _docsBox.listenable(),
             builder: (context, Box box, _) {
-              // Filter out notes that are archived or deleted
               final keys = box.keys.where((key) {
                 final doc = box.get(key);
                 if (doc is Map) {
@@ -252,28 +261,17 @@ class _HomeScreenState extends State<HomeScreen> {
     return NavigationDrawer(
       backgroundColor: theme.colorScheme.surfaceContainerLow,
       onDestinationSelected: (index) {
-        Navigator.pop(context); // Close drawer first
-        
+        Navigator.pop(context);
         switch (index) {
-          case 0: // Home - Already here
+          case 0: break;
+          case 1:
+            Navigator.push(context, MaterialPageRoute(builder: (context) => ArchiveScreen(settings: widget.settings)));
             break;
-          case 1: // Archive
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => ArchiveScreen(settings: widget.settings)),
-            );
+          case 2:
+            Navigator.push(context, MaterialPageRoute(builder: (context) => TrashScreen(settings: widget.settings)));
             break;
-          case 2: // Trash
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => TrashScreen(settings: widget.settings)),
-            );
-            break;
-          case 3: // Settings
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => SettingsScreen(settings: widget.settings)),
-            );
+          case 3:
+            Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsScreen(settings: widget.settings)));
             break;
         }
       },
@@ -305,10 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
           selectedIcon: Icon(Icons.delete_rounded),
           label: Text('Trash'),
         ),
-        const Padding(
-          padding: EdgeInsets.fromLTRB(28, 16, 28, 16),
-          child: Divider(),
-        ),
+        const Padding(padding: EdgeInsets.fromLTRB(28, 16, 28, 16), child: Divider()),
         const NavigationDrawerDestination(
           icon: Icon(Icons.settings_outlined),
           selectedIcon: Icon(Icons.settings_rounded),
@@ -337,15 +332,11 @@ class _HomeScreenState extends State<HomeScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(32),
           side: BorderSide(
-            color: isSelected 
-              ? theme.colorScheme.primary 
-              : theme.colorScheme.outlineVariant.withOpacity(0.3),
+            color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant.withOpacity(0.3),
             width: isSelected ? 2.5 : 1,
           ),
         ),
-        color: isSelected 
-            ? theme.colorScheme.primaryContainer 
-            : theme.colorScheme.surfaceContainerLow,
+        color: isSelected ? theme.colorScheme.primaryContainer : theme.colorScheme.surfaceContainerLow,
         child: InkWell(
           borderRadius: BorderRadius.circular(32),
           onLongPress: () => _toggleSelection(key),
@@ -366,11 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     if (_isSelectionMode) 
-                      Icon(
-                        isSelected ? Icons.check_circle : Icons.radio_button_unchecked, 
-                        color: theme.colorScheme.primary, 
-                        size: 24
-                      )
+                      Icon(isSelected ? Icons.check_circle : Icons.radio_button_unchecked, color: theme.colorScheme.primary, size: 24)
                     else 
                       _buildPopupMenu(key, doc),
                   ],
@@ -380,11 +367,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   preview.isEmpty ? 'Empty note' : preview, 
                   maxLines: isGrid ? 5 : 2, 
                   overflow: TextOverflow.ellipsis, 
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurfaceVariant, 
-                    fontSize: 15,
-                    height: 1.4
-                  )
+                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 15, height: 1.4)
                 ),
                 const SizedBox(height: 16),
                 Container(
@@ -393,10 +376,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
-                    date, 
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: theme.colorScheme.primary)
-                  ),
+                  child: Text(date, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: theme.colorScheme.primary)),
                 ),
               ],
             ),
