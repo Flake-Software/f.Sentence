@@ -11,6 +11,7 @@ val keystoreAliasStr = System.getenv("KEY_ALIAS") ?: ""
 val keyPasswordStr = System.getenv("KEY_PASSWORD") ?: ""
 
 android {
+    ndkVersion = "28.2.13676358"
     namespace = "com.flake.sentence" 
     compileSdk = 36
 
