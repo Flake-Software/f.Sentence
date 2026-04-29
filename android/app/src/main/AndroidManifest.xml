@@ -26,6 +26,16 @@
             </intent-filter>
         </activity>
 
+        <!-- WIDGET RECEIVER: Registrovanje vidžeta u sistemu -->
+        <receiver android:name=".AddNoteWidgetProvider" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/add_note_widget_info" />
+        </receiver>
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
