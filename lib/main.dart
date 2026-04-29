@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:home_widget/home_widget.dart';
 
 // Core settings i UI
 import 'core/app_settings.dart'; 
 import 'ui/screens/home_screen.dart';
+import 'ui/screens/document_viewer_screen.dart';
+import 'core/widgets/widget_manager.dart';
+
+// Global key for navigation from widget clicks
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   // Ensure Flutter is ready
@@ -31,27 +37,61 @@ void main() async {
   runApp(MyApp(appSettings: appSettings));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   final AppSettings appSettings;
 
   const MyApp({super.key, required this.appSettings});
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    
+    // Setup the listener for Home Screen Widget clicks
+    WidgetManager.setupWidgetClickListener((Uri? uri) {
+      if (uri != null && uri.host == 'add_note') {
+        _handleWidgetAction();
+      }
+    });
+  }
+
+  void _handleWidgetAction() {
+    // Generate a new key for the fresh note
+    final String newKey = "note_${DateTime.now().millisecondsSinceEpoch}";
+    
+    // Navigate using the global navigator key
+    navigatorKey.currentState?.push(
+      MaterialPageRoute(
+        builder: (context) => DocumentViewerScreen(
+          documentKey: newKey,
+          fileName: widget.appSettings.defaultName,
+          settings: widget.appSettings,
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: appSettings,
+      listenable: widget.appSettings,
       builder: (context, _) {
-        final bool isAmoled = appSettings.themeLabel == 'AMOLED';
+        final bool isAmoled = widget.appSettings.themeLabel == 'AMOLED';
 
         return MaterialApp(
           title: 'f.Sentence',
+          navigatorKey: navigatorKey, // Set the global key here
           debugShowCheckedModeBanner: false,
-          themeMode: appSettings.themeMode,
+          themeMode: widget.appSettings.themeMode,
 
           // Light Theme
           theme: ThemeData(
             useMaterial3: true,
-            colorSchemeSeed: appSettings.accentColor,
+            colorSchemeSeed: widget.appSettings.accentColor,
             brightness: Brightness.light,
             fontFamily: 'Inter',
             appBarTheme: const AppBarTheme(
@@ -67,7 +107,7 @@ class MyApp extends StatelessWidget {
           darkTheme: ThemeData(
             useMaterial3: true,
             brightness: Brightness.dark,
-            colorSchemeSeed: appSettings.accentColor,
+            colorSchemeSeed: widget.appSettings.accentColor,
 
             // AMOLED Specifičnosti
             scaffoldBackgroundColor: isAmoled ? Colors.black : null,
@@ -89,13 +129,13 @@ class MyApp extends StatelessWidget {
             ),
 
             colorScheme: ColorScheme.fromSeed(
-              seedColor: appSettings.accentColor,
+              seedColor: widget.appSettings.accentColor,
               brightness: Brightness.dark,
               surface: isAmoled ? Colors.black : null,
             ),
           ),
 
-          home: HomeScreen(settings: appSettings),
+          home: HomeScreen(settings: widget.appSettings),
         );
       },
     );
