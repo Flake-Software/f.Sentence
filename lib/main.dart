@@ -13,25 +13,20 @@ import 'core/widgets/widget_manager.dart';
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
-  // Ensure Flutter is ready
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Postavljanje transparentnosti sistemskih traka za "Edge-to-Edge" izgled
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     systemNavigationBarColor: Colors.transparent,
     statusBarColor: Colors.transparent,
     systemNavigationBarDividerColor: Colors.transparent,
   ));
 
-  // Opciono: Omogućavanje Edge-to-Edge moda na Androidu
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-  // Initialize Hive i otvori box-ove
   await Hive.initFlutter();
   await Hive.openBox('settings_box');
   await Hive.openBox('documents_box');
 
-  // Kreiramo AppSettings
   final appSettings = AppSettings();
 
   runApp(MyApp(appSettings: appSettings));
@@ -39,7 +34,6 @@ void main() async {
 
 class MyApp extends StatefulWidget {
   final AppSettings appSettings;
-
   const MyApp({super.key, required this.appSettings});
 
   @override
@@ -51,24 +45,75 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     
-    // Setup the listener for Home Screen Widget clicks
+    // Setup listener for Home Screen Widget clicks
     WidgetManager.setupWidgetClickListener((Uri? uri) {
       if (uri != null && uri.host == 'add_note') {
-        _handleWidgetAction();
+        // Delay slightly to ensure the app context is ready
+        Future.delayed(const Duration(milliseconds: 100), () {
+          _showNewNoteDialog();
+        });
       }
     });
   }
 
-  void _handleWidgetAction() {
-    // Generate a new key for the fresh note
+  /// Displays a stylish dialog to name the note before opening the viewer
+  void _showNewNoteDialog() {
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
+
+    final TextEditingController nameController = TextEditingController(
+      text: widget.appSettings.defaultName
+    );
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        title: const Text("New Note"),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: "Enter note title...",
+            filled: true,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+          ),
+          onSubmitted: (value) => _confirmNewNote(context, value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => _confirmNewNote(context, nameController.text),
+            child: const Text("Create"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmNewNote(BuildContext context, String title) {
+    final String finalTitle = title.trim().isEmpty ? widget.appSettings.defaultName : title.trim();
     final String newKey = "note_${DateTime.now().millisecondsSinceEpoch}";
     
-    // Navigate using the global navigator key
+    // Close dialog
+    Navigator.pop(context);
+
+    // Navigate to viewer
     navigatorKey.currentState?.push(
       MaterialPageRoute(
         builder: (context) => DocumentViewerScreen(
           documentKey: newKey,
-          fileName: widget.appSettings.defaultName,
+          fileName: finalTitle,
           settings: widget.appSettings,
         ),
       ),
@@ -84,57 +129,26 @@ class _MyAppState extends State<MyApp> {
 
         return MaterialApp(
           title: 'f.Sentence',
-          navigatorKey: navigatorKey, // Set the global key here
+          navigatorKey: navigatorKey,
           debugShowCheckedModeBanner: false,
           themeMode: widget.appSettings.themeMode,
-
-          // Light Theme
           theme: ThemeData(
             useMaterial3: true,
             colorSchemeSeed: widget.appSettings.accentColor,
             brightness: Brightness.light,
             fontFamily: 'Inter',
-            appBarTheme: const AppBarTheme(
-              systemOverlayStyle: SystemUiOverlayStyle(
-                statusBarIconBrightness: Brightness.dark,
-                statusBarBrightness: Brightness.light,
-                systemNavigationBarIconBrightness: Brightness.dark,
-              ),
-            ),
           ),
-
-          // Dark / AMOLED Theme
           darkTheme: ThemeData(
             useMaterial3: true,
             brightness: Brightness.dark,
             colorSchemeSeed: widget.appSettings.accentColor,
-
-            // AMOLED Specifičnosti
             scaffoldBackgroundColor: isAmoled ? Colors.black : null,
-
-            appBarTheme: AppBarTheme(
-              backgroundColor: isAmoled ? Colors.black : null,
-              elevation: 0,
-              surfaceTintColor: Colors.transparent,
-              systemOverlayStyle: const SystemUiOverlayStyle(
-                statusBarIconBrightness: Brightness.light,
-                statusBarBrightness: Brightness.dark,
-                systemNavigationBarIconBrightness: Brightness.light,
-              ),
-            ),
-
-            cardTheme: CardThemeData(
-              color: isAmoled ? const Color(0xFF121212) : null,
-              elevation: 0,
-            ),
-
             colorScheme: ColorScheme.fromSeed(
               seedColor: widget.appSettings.accentColor,
               brightness: Brightness.dark,
               surface: isAmoled ? Colors.black : null,
             ),
           ),
-
           home: HomeScreen(settings: widget.appSettings),
         );
       },
