@@ -17,11 +17,10 @@ class AddNoteWidgetProvider : HomeWidgetProvider() {
     ) {
         for (appWidgetId in appWidgetIds) {
             val views = RemoteViews(context.packageName, R.layout.add_note_widget).apply {
-                // Koristimo HomeWidgetLaunchIntent za generisanje klika
                 val pendingIntent = HomeWidgetLaunchIntent.getActivity(
                     context,
                     MainActivity::class.java,
-                    Uri.parse("home_widget://add_note")
+                    Uri.parse("sentence://add_note")
                 )
                 setOnClickPendingIntent(R.id.widget_root, pendingIntent)
             }
