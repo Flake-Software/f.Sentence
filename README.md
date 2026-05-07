@@ -4,6 +4,8 @@
   <img width="160" src="https://github.com/user-attachments/assets/16279538-eb2f-4aa4-8ab1-7ec59f461cad" />
 </p>
 
+<script src="https://keepandroidopen.org/banner.js"></script>
+
 <p align="center">
   <b>Open-source document editor for the modern workflow.</b>
 </p>
