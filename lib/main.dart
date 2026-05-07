@@ -37,7 +37,8 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
-  
+  bool _isInteractionInitialized = false;
+
   @override
   void initState() {
     super.initState();
@@ -55,33 +56,40 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Kada se aplikacija vrati iz pozadine (Resumed), ponovo proveri vidžet
+    // Proveravamo vidžet svaki put kada se aplikacija vrati u fokus
     if (state == AppLifecycleState.resumed) {
-      _initWidgetInteractions();
+      _checkInitialUri();
     }
   }
 
   Future<void> _initWidgetInteractions() async {
+    if (_isInteractionInitialized) return;
+
     await HomeWidget.setAppGroupId(WidgetManager.appGroupId);
+    
+    // Provera pri pokretanju
+    _checkInitialUri();
 
-    // Provera inicijalnog URI-ja (Cold start)
-    final Uri? initialUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
-    if (initialUri != null) {
-      _handleUri(initialUri);
-    }
-
-    // Slušanje klikova dok aplikacija radi
+    // Slušanje dok aplikacija radi
     HomeWidget.widgetClicked.listen((Uri? uri) {
       if (uri != null) {
         _handleUri(uri);
       }
     });
+
+    _isInteractionInitialized = true;
+  }
+
+  Future<void> _checkInitialUri() async {
+    final Uri? initialUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
+    if (initialUri != null) {
+      _handleUri(initialUri);
+    }
   }
 
   void _handleUri(Uri uri) {
+    // Proveravamo da li URI sadrži našu šemu
     if (uri.toString().contains('add_note')) {
-      // Čistimo URI u home_widget-u kako ne bi ponavljao isti klik
-      HomeWidget.registerInteractivityCallback(null); 
       _showNewNoteDialog();
     }
   }
@@ -90,12 +98,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final context = navigatorKey.currentContext;
     if (context == null) return;
 
-    // Sprečavamo otvaranje više dijaloga istovremeno
-    if (ModalRoute.of(context)?.isCurrent == false && 
-        ModalRoute.of(context)?.settings.name == 'new_note_dialog') {
-      return;
-    }
-
     final TextEditingController nameController = TextEditingController(
       text: widget.appSettings.defaultName
     );
@@ -103,7 +105,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     showDialog(
       context: context,
       barrierDismissible: true,
-      routeSettings: const RouteSettings(name: 'new_note_dialog'),
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         title: const Text("Nova bilješka"),
