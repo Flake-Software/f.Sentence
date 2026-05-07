@@ -12,7 +12,7 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     systemNavigationBarColor: Colors.transparent,
     statusBarColor: Colors.transparent,
@@ -36,30 +36,52 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initWidgetInteractions();
     });
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Kada se aplikacija vrati iz pozadine (Resumed), ponovo proveri vidžet
+    if (state == AppLifecycleState.resumed) {
+      _initWidgetInteractions();
+    }
+  }
+
   Future<void> _initWidgetInteractions() async {
     await HomeWidget.setAppGroupId(WidgetManager.appGroupId);
 
-    // Cold Start provera
+    // Provera inicijalnog URI-ja (Cold start)
     final Uri? initialUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
-    if (initialUri != null) _handleUri(initialUri);
+    if (initialUri != null) {
+      _handleUri(initialUri);
+    }
 
-    // Listen dok aplikacija radi
+    // Slušanje klikova dok aplikacija radi
     HomeWidget.widgetClicked.listen((Uri? uri) {
-      if (uri != null) _handleUri(uri);
+      if (uri != null) {
+        _handleUri(uri);
+      }
     });
   }
 
   void _handleUri(Uri uri) {
     if (uri.toString().contains('add_note')) {
+      // Čistimo URI u home_widget-u kako ne bi ponavljao isti klik
+      HomeWidget.registerInteractivityCallback(null); 
       _showNewNoteDialog();
     }
   }
@@ -68,6 +90,12 @@ class _MyAppState extends State<MyApp> {
     final context = navigatorKey.currentContext;
     if (context == null) return;
 
+    // Sprečavamo otvaranje više dijaloga istovremeno
+    if (ModalRoute.of(context)?.isCurrent == false && 
+        ModalRoute.of(context)?.settings.name == 'new_note_dialog') {
+      return;
+    }
+
     final TextEditingController nameController = TextEditingController(
       text: widget.appSettings.defaultName
     );
@@ -75,6 +103,7 @@ class _MyAppState extends State<MyApp> {
     showDialog(
       context: context,
       barrierDismissible: true,
+      routeSettings: const RouteSettings(name: 'new_note_dialog'),
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         title: const Text("Nova bilješka"),
@@ -130,7 +159,11 @@ class _MyAppState extends State<MyApp> {
           navigatorKey: navigatorKey,
           debugShowCheckedModeBanner: false,
           themeMode: widget.appSettings.themeMode,
-          theme: ThemeData(useMaterial3: true, colorSchemeSeed: widget.appSettings.accentColor),
+          theme: ThemeData(
+            useMaterial3: true, 
+            colorSchemeSeed: widget.appSettings.accentColor,
+            brightness: Brightness.light,
+          ),
           darkTheme: ThemeData(
             useMaterial3: true,
             brightness: Brightness.dark,
