@@ -7,7 +7,6 @@ import android.net.Uri
 import android.widget.RemoteViews
 import android.content.Intent
 import android.app.PendingIntent
-import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetProvider
 
 class AddNoteWidgetProvider : HomeWidgetProvider() {
@@ -19,17 +18,18 @@ class AddNoteWidgetProvider : HomeWidgetProvider() {
     ) {
         for (appWidgetId in appWidgetIds) {
             val views = RemoteViews(context.packageName, R.layout.add_note_widget).apply {
-                // Generišemo Intent sa flagovima koji osiguravaju da svaki klik bude "svež"
                 val intent = Intent(context, MainActivity::class.java).apply {
-                    data = Uri.parse("sentence://add_note?time=${System.currentTimeMillis()}")
+                    data = Uri.parse("sentence://add_note")
                     action = Intent.ACTION_VIEW
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 }
+
+                // KLJUČ: Koristimo unikatan ID (timestamp) umesto appWidgetId
+                // Ovo sprečava Android da "zapamti" stari klik
+                val requestCode = System.currentTimeMillis().toInt()
 
                 val pendingIntent = PendingIntent.getActivity(
                     context, 
-                    appWidgetId, 
+                    requestCode, 
                     intent, 
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
