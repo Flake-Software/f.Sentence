@@ -36,67 +36,42 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
-  bool _isInteractionInitialized = false;
-
+class _MyAppState extends State<MyApp> {
+  
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initWidgetInteractions();
-    });
+    _setupHomeWidget();
   }
 
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Proveravamo vidžet svaki put kada se aplikacija vrati u fokus
-    if (state == AppLifecycleState.resumed) {
-      _checkInitialUri();
-    }
-  }
-
-  Future<void> _initWidgetInteractions() async {
-    if (_isInteractionInitialized) return;
-
+  void _setupHomeWidget() async {
     await HomeWidget.setAppGroupId(WidgetManager.appGroupId);
-    
-    // Provera pri pokretanju
-    _checkInitialUri();
 
-    // Slušanje dok aplikacija radi
-    HomeWidget.widgetClicked.listen((Uri? uri) {
-      if (uri != null) {
-        _handleUri(uri);
-      }
-    });
+    // 1. Slušaj klikove dok je aplikacija aktivna ili u pozadini
+    HomeWidget.widgetClicked.listen(_handleUri);
 
-    _isInteractionInitialized = true;
-  }
-
-  Future<void> _checkInitialUri() async {
+    // 2. Proveri da li je aplikacija pokrenuta klikom (Cold Start)
     final Uri? initialUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
     if (initialUri != null) {
       _handleUri(initialUri);
     }
   }
 
-  void _handleUri(Uri uri) {
-    // Proveravamo da li URI sadrži našu šemu
-    if (uri.toString().contains('add_note')) {
-      _showNewNoteDialog();
+  void _handleUri(Uri? uri) {
+    if (uri != null && uri.toString().contains('add_note')) {
+      // Kratka pauza osigurava da Navigator bude spreman
+      Future.delayed(const Duration(milliseconds: 300), () {
+        _showNewNoteDialog();
+      });
     }
   }
 
   void _showNewNoteDialog() {
     final context = navigatorKey.currentContext;
     if (context == null) return;
+
+    // Provera da dijalog nije već otvoren
+    if (ModalRoute.of(context)?.settings.name == 'new_note_dialog') return;
 
     final TextEditingController nameController = TextEditingController(
       text: widget.appSettings.defaultName
@@ -105,28 +80,23 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     showDialog(
       context: context,
       barrierDismissible: true,
+      routeSettings: const RouteSettings(name: 'new_note_dialog'),
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: const Text("Nova bilješka"),
+        title: const Text("New note"),
         content: TextField(
           controller: nameController,
           autofocus: true,
           decoration: InputDecoration(
-            hintText: "Unesite naslov...",
+            hintText: "Note title...",
             filled: true,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
           ),
-          onSubmitted: (value) => _confirmNewNote(context, value),
+          onSubmitted: (val) => _confirmNewNote(context, val),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Otkaži")),
-          FilledButton(
-            onPressed: () => _confirmNewNote(context, nameController.text),
-            child: const Text("Kreiraj"),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          FilledButton(onPressed: () => _confirmNewNote(context, nameController.text), child: const Text("Create")),
         ],
       ),
     );
@@ -135,9 +105,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void _confirmNewNote(BuildContext context, String title) {
     final String finalTitle = title.trim().isEmpty ? widget.appSettings.defaultName : title.trim();
     final String newKey = "note_${DateTime.now().millisecondsSinceEpoch}";
-    
     Navigator.of(context, rootNavigator: true).pop();
-
     navigatorKey.currentState?.push(
       MaterialPageRoute(
         builder: (context) => DocumentViewerScreen(
@@ -154,27 +122,16 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     return ListenableBuilder(
       listenable: widget.appSettings,
       builder: (context, _) {
-        final bool isAmoled = widget.appSettings.themeLabel == 'AMOLED';
         return MaterialApp(
-          title: 'f.Sentence',
           navigatorKey: navigatorKey,
           debugShowCheckedModeBanner: false,
           themeMode: widget.appSettings.themeMode,
-          theme: ThemeData(
-            useMaterial3: true, 
-            colorSchemeSeed: widget.appSettings.accentColor,
-            brightness: Brightness.light,
-          ),
+          theme: ThemeData(useMaterial3: true, colorSchemeSeed: widget.appSettings.accentColor),
           darkTheme: ThemeData(
             useMaterial3: true,
             brightness: Brightness.dark,
             colorSchemeSeed: widget.appSettings.accentColor,
-            scaffoldBackgroundColor: isAmoled ? Colors.black : null,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: widget.appSettings.accentColor,
-              brightness: Brightness.dark,
-              surface: isAmoled ? Colors.black : null,
-            ),
+            scaffoldBackgroundColor: widget.appSettings.themeLabel == 'AMOLED' ? Colors.black : null,
           ),
           home: HomeScreen(settings: widget.appSettings),
         );
