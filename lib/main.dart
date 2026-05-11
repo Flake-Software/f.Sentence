@@ -36,31 +36,48 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   
   @override
   void initState() {
     super.initState();
-    _setupHomeWidget();
+    WidgetsBinding.instance.addObserver(this);
+    _initInteractions();
   }
 
-  void _setupHomeWidget() async {
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Kada se korisnik vrati u aplikaciju, proveravamo da li je kliknuo na vidžet
+    if (state == AppLifecycleState.resumed) {
+      _checkWidgetLaunch();
+    }
+  }
+
+  void _initInteractions() async {
     await HomeWidget.setAppGroupId(WidgetManager.appGroupId);
-
-    // 1. Slušaj klikove dok je aplikacija aktivna ili u pozadini
+    // Slušalac dok aplikacija radi u pozadini
     HomeWidget.widgetClicked.listen(_handleUri);
+    // Provera za prvo paljenje
+    _checkWidgetLaunch();
+  }
 
-    // 2. Proveri da li je aplikacija pokrenuta klikom (Cold Start)
-    final Uri? initialUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
-    if (initialUri != null) {
-      _handleUri(initialUri);
+  Future<void> _checkWidgetLaunch() async {
+    final Uri? uri = await HomeWidget.initiallyLaunchedFromHomeWidget();
+    if (uri != null) {
+      _handleUri(uri);
     }
   }
 
   void _handleUri(Uri? uri) {
     if (uri != null && uri.toString().contains('add_note')) {
-      // Kratka pauza osigurava da Navigator bude spreman
-      Future.delayed(const Duration(milliseconds: 300), () {
+      // Mala pauza da Navigator bude spreman
+      Future.delayed(const Duration(milliseconds: 350), () {
         _showNewNoteDialog();
       });
     }
@@ -70,7 +87,7 @@ class _MyAppState extends State<MyApp> {
     final context = navigatorKey.currentContext;
     if (context == null) return;
 
-    // Provera da dijalog nije već otvoren
+    // Ako je dijalog već otvoren, ne otvaraj ponovo
     if (ModalRoute.of(context)?.settings.name == 'new_note_dialog') return;
 
     final TextEditingController nameController = TextEditingController(
@@ -83,29 +100,31 @@ class _MyAppState extends State<MyApp> {
       routeSettings: const RouteSettings(name: 'new_note_dialog'),
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: const Text("New note"),
+        title: const Text("Nova bilješka"),
         content: TextField(
           controller: nameController,
           autofocus: true,
           decoration: InputDecoration(
-            hintText: "Note title...",
+            hintText: "Naslov...",
             filled: true,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
           ),
-          onSubmitted: (val) => _confirmNewNote(context, val),
+          onSubmitted: (val) => _confirm(context, val),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          FilledButton(onPressed: () => _confirmNewNote(context, nameController.text), child: const Text("Create")),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Otkaži")),
+          FilledButton(onPressed: () => _confirm(context, nameController.text), child: const Text("Kreiraj")),
         ],
       ),
     );
   }
 
-  void _confirmNewNote(BuildContext context, String title) {
+  void _confirm(BuildContext context, String title) {
     final String finalTitle = title.trim().isEmpty ? widget.appSettings.defaultName : title.trim();
     final String newKey = "note_${DateTime.now().millisecondsSinceEpoch}";
+    
     Navigator.of(context, rootNavigator: true).pop();
+    
     navigatorKey.currentState?.push(
       MaterialPageRoute(
         builder: (context) => DocumentViewerScreen(
