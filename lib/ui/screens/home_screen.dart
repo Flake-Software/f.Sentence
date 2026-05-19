@@ -9,11 +9,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/app_settings.dart';
+import '../../core/widgets/widget_manager.dart'; // Added WidgetManager import
 import 'settings_screen.dart';
 import 'document_viewer_screen.dart';
 import 'archive.dart';
 import 'trash.dart';
-import 'search.dart'; // Added search screen import
+import 'search.dart';
 
 class HomeScreen extends StatefulWidget {
   final AppSettings settings;
@@ -36,6 +37,31 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _docsBox = Hive.box('documents_box');
+    
+    // Initial widget synchronization after first layout frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncNotesToWidget();
+    });
+  }
+
+  /// Extracts active titles from the Hive box and synchronizes them with the Android widget pref-layer
+  void _syncNotesToWidget() {
+    try {
+      final List<String> activeTitles = _docsBox.values
+          .where((doc) {
+            if (doc is Map) {
+              return doc['is_archived'] != true && doc['is_deleted'] != true;
+            }
+            return true;
+          })
+          .map((doc) => doc is Map ? (doc['title']?.toString() ?? 'Untitled') : 'Untitled')
+          .toList();
+
+      WidgetManager.updateWidgetNotesList(activeTitles);
+    } catch (e) {
+      // Fail-safe catch block to avoid disrupting application runtime
+      debugPrint("Widget syncing failed: $e");
+    }
   }
 
   // --- TEXT EXTRACTION LOGIC ---
@@ -80,6 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
           await _docsBox.put(key, newDoc);
         }
       }
+      _syncNotesToWidget(); // Trigger update event
       _exitSelectionMode();
     }
   }
@@ -220,6 +247,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
                 return true;
               }).toList().reversed.toList();
+
+              // Automatically trigger visual sync down to the Android Widget system upon database changes
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _syncNotesToWidget();
+              });
 
               if (keys.isEmpty) return SliverFillRemaining(child: _buildEmptyState());
 
@@ -404,7 +436,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const PopupMenuItem(value: 'share', child: ListTile(leading: Icon(Icons.share_rounded), title: Text('Share'), contentPadding: EdgeInsets.zero)),
         const PopupMenuItem(value: 'archive', child: ListTile(leading: Icon(Icons.archive_outlined), title: Text('Archive'), contentPadding: EdgeInsets.zero)),
         const PopupMenuDivider(),
-        PopupMenuItem(value: 'delete', child: ListTile(leading: const Icon(Icons.delete_outline, color: Colors.red), title: const Text('Move to Trash', style: TextStyle(color: Colors.red)), contentPadding: EdgeInsets.zero)),
+        PopupMenuItem(value: 'delete', (key) => _handleSingleDelete(key), child: ListTile(leading: const Icon(Icons.delete_outline, color: Colors.red), title: const Text('Move to Trash', style: TextStyle(color: Colors.red)), contentPadding: EdgeInsets.zero)),
       ],
     );
   }
@@ -415,6 +447,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final newDoc = Map<String, dynamic>.from(doc);
       newDoc['is_archived'] = true;
       await _docsBox.put(key, newDoc);
+      _syncNotesToWidget(); // Trigger sync
       _showSnackBar("Note archived");
     }
   }
@@ -425,6 +458,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final newDoc = Map<String, dynamic>.from(doc);
       newDoc['is_deleted'] = true;
       await _docsBox.put(key, newDoc);
+      _syncNotesToWidget(); // Trigger sync
       _showSnackBar("Note moved to trash");
     }
   }
@@ -448,6 +482,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _docsBox.put(key, newDoc);
               }
               Navigator.pop(context);
+              _syncNotesToWidget(); // Trigger sync
               setState(() {});
             },
             child: const Text('Rename'),
@@ -486,7 +521,7 @@ class _HomeScreenState extends State<HomeScreen> {
               String name = controller.text.trim().isEmpty ? widget.settings.defaultName : controller.text.trim();
               Navigator.pop(context);
               _openNote("note_${DateTime.now().millisecondsSinceEpoch}", name);
-            },
+   },
             child: const Text('Create'),
           ),
         ],
