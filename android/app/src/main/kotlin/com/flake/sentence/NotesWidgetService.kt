@@ -17,8 +17,8 @@ class NotesRemoteViewsFactory(private val context: Context) : RemoteViewsService
     override fun onCreate() {}
 
     override fun onDataSetChanged() {
-        // Fetching the pipe-separated string updated by Flutter from Shared Preferences
-        val prefs = context.getSharedPreferences("HomeWidgetPausedData", Context.MODE_PRIVATE)
+        // Ispravljeno: koristimo "HomeWidgetPreferences" jer tu Flutter upisuje podatke
+        val prefs = context.getSharedPreferences("HomeWidgetPreferences", Context.MODE_PRIVATE)
         val titlesString = prefs.getString("note_titles", "") ?: ""
         notes = if (titlesString.isEmpty()) listOf() else titlesString.split("|")
     }
@@ -30,7 +30,7 @@ class NotesRemoteViewsFactory(private val context: Context) : RemoteViewsService
         val views = RemoteViews(context.packageName, R.layout.note_item)
         views.setTextViewText(R.id.note_item_title, notes[position])
 
-        // Creating a fill-in intent so clicking a specific row can be handled by the main provider
+        // Svaka stavka u listi dobija svoj jedinstveni Intent koji MainActivity može da prepozna
         val fillInIntent = Intent().apply {
             putExtra("note_index", position)
             putExtra("note_title", notes[position])
