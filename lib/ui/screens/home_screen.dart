@@ -436,7 +436,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const PopupMenuItem(value: 'share', child: ListTile(leading: Icon(Icons.share_rounded), title: Text('Share'), contentPadding: EdgeInsets.zero)),
         const PopupMenuItem(value: 'archive', child: ListTile(leading: Icon(Icons.archive_outlined), title: Text('Archive'), contentPadding: EdgeInsets.zero)),
         const PopupMenuDivider(),
-        PopupMenuItem(value: 'delete', (key) => _handleSingleDelete(key), child: ListTile(leading: const Icon(Icons.delete_outline, color: Colors.red), title: const Text('Move to Trash', style: TextStyle(color: Colors.red)), contentPadding: EdgeInsets.zero)),
+        const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_outline, color: Colors.red), title: Text('Move to Trash', style: TextStyle(color: Colors.red)), contentPadding: EdgeInsets.zero)),
       ],
     );
   }
@@ -521,8 +521,8 @@ class _HomeScreenState extends State<HomeScreen> {
               String name = controller.text.trim().isEmpty ? widget.settings.defaultName : controller.text.trim();
               Navigator.pop(context);
               _openNote("note_${DateTime.now().millisecondsSinceEpoch}", name);
-   },
-            child: const Text('Create'),
+            },
+            child: const Text ('Create'),
           ),
         ],
       ),
