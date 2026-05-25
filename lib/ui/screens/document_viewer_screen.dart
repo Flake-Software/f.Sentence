@@ -11,6 +11,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:open_filex/open_filex.dart';
 import '../../core/app_settings.dart';
+import '../../core/widgets/widget_manager.dart';
 
 class DocumentViewerScreen extends StatefulWidget {
   final String? fileName;
@@ -57,17 +58,35 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     } else {
       _controller = FleatherController();
     }
+
     _controller?.addListener(_autoSave);
   }
 
-  void _autoSave() {
+  // 🔥 FIXED AUTO SAVE (Hive + Widget sync)
+  void _autoSave() async {
     if (_controller == null) return;
+
     final content = jsonEncode(_controller!.document.toDelta());
-    _box.put(widget.documentKey, {
+
+    await _box.put(widget.documentKey, {
       'title': _currentTitle,
       'content': content,
       'last_modified': DateTime.now().toIso8601String(),
     });
+
+    // 🔥 UPDATE WIDGET (FIXED GLUE LAYER)
+    try {
+      final notes = _box.values.toList();
+
+      final titles = notes
+          .where((n) => n is Map && n['title'] != null)
+          .map((n) => n['title'] as String)
+          .toList();
+
+      await WidgetManager.updateWidgetNotesList(titles);
+    } catch (_) {
+      // widget failure ne sme da ruši app
+    }
   }
 
   // --- FILE OPENING ---
@@ -87,7 +106,6 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     }
   }
 
-  // --- EMBED BUILDER ---
   Widget _embedBuilder(BuildContext context, EmbedNode node) {
     final String type = node.value.type;
     final String source = node.value.data['source'];
@@ -160,10 +178,16 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
       onPressed: () {
         final offset = node.offset;
         final length = node.length;
+
         setState(() {
-          _controller!.replaceText(offset, length, '',
-              selection: TextSelection.collapsed(offset: offset));
+          _controller!.replaceText(
+            offset,
+            length,
+            '',
+            selection: TextSelection.collapsed(offset: offset),
+          );
         });
+
         _showSnackBar("Attachment removed");
       },
     );
@@ -187,7 +211,6 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     );
   }
 
-  // --- MEDIA PICKING ---
   Future<void> _pickMedia(String type) async {
     String? filePath;
     try {
@@ -212,8 +235,8 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
         if (index < 0) index = _controller!.document.length - 1;
 
         _controller!.replaceText(
-          index, 
-          0, 
+          index,
+          0,
           BlockEmbed(type, data: {'source': localFile.path}),
           selection: TextSelection.collapsed(offset: index + 1),
         );
@@ -229,7 +252,9 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
       builder: (context) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
@@ -255,14 +280,17 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
 
   Widget _mediaOption(IconData icon, String label, VoidCallback onTap) {
     return InkWell(
-      onTap: () { Navigator.pop(context); onTap(); },
+      onTap: () {
+        Navigator.pop(context);
+        onTap();
+      },
       borderRadius: BorderRadius.circular(20),
       child: Column(
         children: [
           CircleAvatar(
-            radius: 32, 
+            radius: 32,
             backgroundColor: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5),
-            child: Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary)
+            child: Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary),
           ),
           const SizedBox(height: 10),
           Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -271,32 +299,39 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     );
   }
 
-  // --- ACTIONS ---
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message), 
-        behavior: SnackBarBehavior.floating, 
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      )
+      ),
     );
   }
 
   Future<void> _renameNote() async {
     final controller = TextEditingController(text: _currentTitle);
+
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Rename Note'),
-        content: TextField(controller: controller, autofocus: true, decoration: const InputDecoration(labelText: "New title")),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: "New title"),
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () {
-            setState(() => _currentTitle = controller.text.trim());
-            _autoSave();
-            Navigator.pop(context);
-          }, child: const Text('Save')),
+          ElevatedButton(
+            onPressed: () {
+              setState(() => _currentTitle = controller.text.trim());
+              _autoSave();
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
         ],
       ),
     );
@@ -304,7 +339,9 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_controller == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_controller == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     final theme = Theme.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
@@ -316,38 +353,41 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
         title: GestureDetector(onTap: _renameNote, child: Text(_currentTitle)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_photo_alternate_outlined), 
+            icon: const Icon(Icons.add_photo_alternate_outlined),
             onPressed: _showMediaPicker,
             tooltip: "Add Attachment",
           ),
-          IconButton(icon: const Icon(Icons.more_vert), onPressed: () {
-            showModalBottomSheet(
-              context: context,
-              builder: (context) => SafeArea(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.share_outlined), 
-                      title: const Text("Share Plain Text"), 
-                      onTap: () {
-                        Navigator.pop(context);
-                        Share.share(_controller!.document.toPlainText());
-                      }
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.edit_outlined), 
-                      title: const Text("Rename Note"), 
-                      onTap: () {
-                        Navigator.pop(context);
-                        _renameNote();
-                      }
-                    ),
-                  ],
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                builder: (context) => SafeArea(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.share_outlined),
+                        title: const Text("Share Plain Text"),
+                        onTap: () {
+                          Navigator.pop(context);
+                          Share.share(_controller!.document.toPlainText());
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.edit_outlined),
+                        title: const Text("Rename Note"),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _renameNote();
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          }),
+              );
+            },
+          ),
         ],
       ),
       body: Stack(
@@ -360,8 +400,8 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                 focusNode: _focusNode,
                 embedBuilder: _embedBuilder,
                 padding: EdgeInsets.only(
-                  top: 16, 
-                  bottom: isKeyboardVisible ? bottomInset + 80 : 120
+                  top: 16,
+                  bottom: isKeyboardVisible ? bottomInset + 80 : 120,
                 ),
               ),
             ),
@@ -380,7 +420,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.attachment_rounded), 
+                      icon: const Icon(Icons.attachment_rounded),
                       onPressed: _showMediaPicker,
                       color: theme.colorScheme.primary,
                       tooltip: "Attachments",
