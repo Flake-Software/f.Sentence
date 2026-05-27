@@ -11,37 +11,70 @@ class NotesWidgetService : RemoteViewsService() {
     }
 }
 
-class NotesRemoteViewsFactory(private val context: Context) : RemoteViewsService.RemoteViewsFactory {
+class NotesRemoteViewsFactory(
+    private val context: Context
+) : RemoteViewsService.RemoteViewsFactory {
+
     private var notes: List<String> = listOf()
 
     override fun onCreate() {}
 
     override fun onDataSetChanged() {
-        // Ispravljeno: koristimo "HomeWidgetPreferences" jer tu Flutter upisuje podatke
-        val prefs = context.getSharedPreferences("HomeWidgetPreferences", Context.MODE_PRIVATE)
-        val titlesString = prefs.getString("note_titles", "") ?: ""
-        notes = if (titlesString.isEmpty()) listOf() else titlesString.split("|")
+        // Reads widget data from the same SharedPreferences
+        // bucket used by HomeWidget + appGroupId
+        val prefs = context.getSharedPreferences(
+            "group.sentence.widgets",
+            Context.MODE_PRIVATE
+        )
+
+        val titlesString =
+            prefs.getString("note_titles", "") ?: ""
+
+        notes = if (titlesString.isBlank()) {
+            listOf()
+        } else {
+            titlesString
+                .split("|")
+                .filter { it.isNotBlank() }
+        }
     }
 
     override fun onDestroy() {}
+
     override fun getCount(): Int = notes.size
 
     override fun getViewAt(position: Int): RemoteViews {
-        val views = RemoteViews(context.packageName, R.layout.note_item)
-        views.setTextViewText(R.id.note_item_title, notes[position])
+        val views = RemoteViews(
+            context.packageName,
+            R.layout.note_item
+        )
 
-        // Svaka stavka u listi dobija svoj jedinstveni Intent koji MainActivity može da prepozna
+        views.setTextViewText(
+            R.id.note_item_title,
+            notes[position]
+        )
+
+        // Each note item gets its own intent
+        // so MainActivity can identify it
         val fillInIntent = Intent().apply {
             putExtra("note_index", position)
             putExtra("note_title", notes[position])
         }
-        views.setOnClickFillInIntent(R.id.note_item_root, fillInIntent)
+
+        views.setOnClickFillInIntent(
+            R.id.note_item_root,
+            fillInIntent
+        )
 
         return views
     }
 
     override fun getLoadingView(): RemoteViews? = null
+
     override fun getViewTypeCount(): Int = 1
-    override fun getItemId(position: Int): Long = position.toLong()
+
+    override fun getItemId(position: Int): Long =
+        position.toLong()
+
     override fun hasStableIds(): Boolean = true
 }
